@@ -83,7 +83,7 @@ export enum ErrorCodes {
 }
 
 // Request validation schemas types
-export interface ValidationError {
+export interface ValidationErrorField {
   field: string;
   message: string;
   code: string;

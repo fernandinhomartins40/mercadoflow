@@ -1,4 +1,6 @@
-import { DocumentType, XmlVersion } from '@prisma/client';
+// Document and XML version types (converted from Prisma enums to string literals)
+export type DocumentType = 'NFE' | 'NFCE';
+export type XmlVersion = 'VERSION_310' | 'VERSION_400' | 'UNKNOWN';
 
 // Invoice ingestion from desktop app
 export interface InvoiceIngestionRequest {
