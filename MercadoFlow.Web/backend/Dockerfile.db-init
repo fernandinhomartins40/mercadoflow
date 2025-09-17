@@ -14,8 +14,8 @@ COPY tsconfig.json ./
 # Copy Prisma files first
 COPY prisma/ ./prisma/
 
-# Install only required dependencies
-RUN npm install prisma @prisma/client bcryptjs
+# Install all dependencies (needed for prisma generate)
+RUN npm install
 
 # Generate Prisma client
 RUN npx prisma generate
