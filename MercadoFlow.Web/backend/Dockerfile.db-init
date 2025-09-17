@@ -1,0 +1,90 @@
+# MercadoFlow Database Initialization Dockerfile
+FROM node:20-alpine
+
+# Install system dependencies
+RUN apk add --no-cache sqlite
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+COPY tsconfig.json ./
+
+# Install dependencies
+RUN npm ci --only=production
+
+# Copy Prisma files
+COPY prisma/ ./prisma/
+
+# Generate Prisma client
+RUN npx prisma generate
+
+# Copy initialization script
+COPY <<EOF ./init-db.js
+const { PrismaClient } = require('@prisma/client');
+
+async function initializeDatabase() {
+  const prisma = new PrismaClient();
+
+  try {
+    console.log('🔄 Inicializando banco de dados...');
+
+    // Execute migrations
+    console.log('📋 Executando migrações...');
+    await prisma.$executeRaw`PRAGMA journal_mode=WAL;`;
+    await prisma.$executeRaw`PRAGMA synchronous=NORMAL;`;
+    await prisma.$executeRaw`PRAGMA cache_size=1000;`;
+    await prisma.$executeRaw`PRAGMA temp_store=MEMORY;`;
+
+    // Check if database is accessible
+    await prisma.$queryRaw`SELECT 1;`;
+
+    console.log('✅ Banco de dados inicializado com sucesso!');
+
+    // Create default admin user if not exists
+    const adminExists = await prisma.user.findUnique({
+      where: { email: 'admin@mercadoflow.com' }
+    });
+
+    if (!adminExists) {
+      const bcrypt = require('bcryptjs');
+      const hashedPassword = await bcrypt.hash('admin123', 12);
+
+      await prisma.user.create({
+        data: {
+          email: 'admin@mercadoflow.com',
+          password: hashedPassword,
+          name: 'Administrador',
+          role: 'ADMIN',
+          isActive: true
+        }
+      });
+
+      console.log('👤 Usuário administrador criado: admin@mercadoflow.com / admin123');
+    }
+
+  } catch (error) {
+    console.error('❌ Erro ao inicializar banco de dados:', error);
+    process.exit(1);
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
+initializeDatabase();
+EOF
+
+# Create data directory
+RUN mkdir -p /app/data
+
+# Set proper permissions
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S mercadoflow -u 1001 && \
+    chown -R mercadoflow:nodejs /app
+
+# Switch to non-root user
+USER mercadoflow
+
+# Run database initialization
+CMD ["node", "init-db.js"]

@@ -1,0 +1,411 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ==== AUTHENTICATION & USERS ====
+
+enum UserRole {
+  ADMIN
+  MARKET_OWNER
+  MARKET_MANAGER
+  INDUSTRY_USER
+}
+
+model User {
+  id         String   @id @default(uuid())
+  email      String   @unique
+  password   String
+  name       String
+  role       UserRole
+  marketId   String?
+  industryId String?
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  market   Market?   @relation(fields: [marketId], references: [id])
+  industry Industry? @relation(fields: [industryId], references: [id])
+  ownedMarkets Market[] @relation("MarketOwner")
+
+  @@map("users")
+}
+
+// ==== MARKETS & PDVs ====
+
+enum PlanType {
+  BASIC
+  INTERMEDIATE
+  ADVANCED
+}
+
+model Market {
+  id       String   @id @default(uuid())
+  name     String
+  cnpj     String?  @unique
+  address  String
+  city     String
+  state    String
+  region   String
+  ownerId  String
+  planType PlanType @default(BASIC)
+  isActive Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  owner    User       @relation("MarketOwner", fields: [ownerId], references: [id])
+  users    User[]
+  pdvs     PDV[]
+  invoices Invoice[]
+  salesAnalytics SalesAnalytics[]
+  marketBaskets  MarketBasket[]
+  alerts   Alert[]
+  campaigns CampaignMarket[]
+
+  @@map("markets")
+}
+
+model PDV {
+  id         String  @id @default(uuid())
+  marketId   String
+  name       String
+  identifier String
+  isActive   Boolean @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  market   Market    @relation(fields: [marketId], references: [id])
+  invoices Invoice[]
+
+  @@map("pdvs")
+}
+
+// ==== INVOICES & ITEMS ====
+
+enum DocumentType {
+  NFE
+  NFCE
+}
+
+enum XmlVersion {
+  VERSION_310
+  VERSION_400
+  UNKNOWN
+}
+
+model Invoice {
+  id                   String       @id @default(uuid())
+  chaveNFe             String       @unique
+  marketId             String
+  pdvId                String?
+  serie                String
+  numero               String
+  dataEmissao          DateTime
+  cnpjEmitente         String
+  cpfCnpjDestinatario  String?
+  valorTotal           Float
+  rawXmlHash           String
+  documentType         DocumentType @default(NFE)
+  xmlVersion           XmlVersion   @default(VERSION_400)
+  processedAt          DateTime     @default(now())
+  createdAt            DateTime     @default(now())
+
+  // Relations
+  market Market @relation(fields: [marketId], references: [id])
+  pdv    PDV?   @relation(fields: [pdvId], references: [id])
+  items  InvoiceItem[]
+
+  @@map("invoices")
+}
+
+model InvoiceItem {
+  id             String  @id @default(uuid())
+  invoiceId      String
+  productId      String?
+  codigoEAN      String
+  codigoInterno  String
+  descricao      String
+  ncm            String
+  cfop           String
+  quantidade     Float
+  valorUnitario  Float
+  valorTotal     Float
+  icms           Float?
+  pis            Float?
+  cofins         Float?
+  createdAt      DateTime @default(now())
+
+  // Relations
+  invoice Invoice  @relation(fields: [invoiceId], references: [id])
+  product Product? @relation(fields: [productId], references: [id])
+
+  @@map("invoice_items")
+}
+
+// ==== PRODUCTS & ANALYTICS ====
+
+model Product {
+  id        String   @id @default(uuid())
+  ean       String   @unique
+  name      String
+  category  String
+  brand     String?
+  unit      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  invoiceItems   InvoiceItem[]
+  salesAnalytics SalesAnalytics[]
+  marketBaskets1 MarketBasket[] @relation("Product1")
+  marketBaskets2 MarketBasket[] @relation("Product2")
+  alerts         Alert[]
+  campaignProducts CampaignProduct[]
+
+  @@map("products")
+}
+
+model SalesAnalytics {
+  id               String   @id @default(uuid())
+  marketId         String
+  productId        String
+  date             DateTime
+  quantitySold     Float
+  revenue          Float
+  averagePrice     Float
+  transactionCount Int
+  createdAt        DateTime @default(now())
+
+  // Relations
+  market  Market  @relation(fields: [marketId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
+
+  @@unique([marketId, productId, date])
+  @@map("sales_analytics")
+}
+
+model MarketBasket {
+  id        String   @id @default(uuid())
+  marketId  String
+  product1Id String
+  product2Id String
+  support   Float
+  confidence Float
+  lift      Float
+  analyzedAt DateTime @default(now())
+
+  // Relations
+  market   Market  @relation(fields: [marketId], references: [id])
+  product1 Product @relation("Product1", fields: [product1Id], references: [id])
+  product2 Product @relation("Product2", fields: [product2Id], references: [id])
+
+  @@unique([marketId, product1Id, product2Id])
+  @@map("market_baskets")
+}
+
+// ==== ALERTS & NOTIFICATIONS ====
+
+enum AlertType {
+  LOW_STOCK
+  HIGH_PERFORMING
+  SLOW_MOVING
+  EXPIRATION_RISK
+  PROMOTION_OPPORTUNITY
+}
+
+enum AlertPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+model Alert {
+  id        String        @id @default(uuid())
+  marketId  String
+  type      AlertType
+  title     String
+  message   String
+  productId String?
+  priority  AlertPriority @default(MEDIUM)
+  isRead    Boolean       @default(false)
+  createdAt DateTime      @default(now())
+
+  // Relations
+  market  Market   @relation(fields: [marketId], references: [id])
+  product Product? @relation(fields: [productId], references: [id])
+
+  @@map("alerts")
+}
+
+// ==== INDUSTRIES & CAMPAIGNS ====
+
+model Industry {
+  id        String   @id @default(uuid())
+  name      String
+  cnpj      String   @unique
+  segment   String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  users     User[]
+  campaigns Campaign[]
+
+  @@map("industries")
+}
+
+enum CampaignStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  COMPLETED
+}
+
+model Campaign {
+  id            String         @id @default(uuid())
+  industryId    String
+  title         String
+  description   String
+  targetRegions String // JSON array
+  startDate     DateTime
+  endDate       DateTime
+  budget        Float
+  status        CampaignStatus @default(DRAFT)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  // Relations
+  industry Industry @relation(fields: [industryId], references: [id])
+  products CampaignProduct[]
+  markets  CampaignMarket[]
+
+  @@map("campaigns")
+}
+
+model CampaignProduct {
+  id         String @id @default(uuid())
+  campaignId String
+  productId  String
+
+  campaign Campaign @relation(fields: [campaignId], references: [id])
+  product  Product  @relation(fields: [productId], references: [id])
+
+  @@unique([campaignId, productId])
+  @@map("campaign_products")
+}
+
+model CampaignMarket {
+  id         String @id @default(uuid())
+  campaignId String
+  marketId   String
+
+  campaign Campaign @relation(fields: [campaignId], references: [id])
+  market   Market   @relation(fields: [marketId], references: [id])
+
+  @@unique([campaignId, marketId])
+  @@map("campaign_markets")
+}
+
+// ==== SYSTEM & CONFIGURATION ====
+
+model SystemConfig {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("system_config")
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  action    String
+  resource  String
+  resourceId String?
+  details   String? // JSON
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@map("audit_logs")
+}
+
+// ==== ANALYTICS AGGREGATIONS ====
+
+model DailySalesSummary {
+  id               String   @id @default(uuid())
+  date             DateTime
+  marketId         String
+  productId        String
+  quantitySold     Float
+  revenue          Float
+  transactionCount Int
+  avgPrice         Float
+  createdAt        DateTime @default(now())
+
+  @@unique([date, marketId, productId])
+  @@map("daily_sales_summary")
+}
+
+model WeeklyMarketBasket {
+  id                String   @id @default(uuid())
+  weekStart         DateTime
+  marketId          String
+  product1Id        String
+  product2Id        String
+  coOccurrenceCount Int
+  support           Float
+  confidence        Float
+  lift              Float
+  createdAt         DateTime @default(now())
+
+  @@unique([weekStart, marketId, product1Id, product2Id])
+  @@map("weekly_market_basket")
+}
+
+// ==== PERFORMANCE METRICS ====
+
+model ProductPerformance {
+  id               String   @id @default(uuid())
+  productId        String
+  marketId         String
+  month            DateTime
+  turnoverRate     Float?   // Giro de estoque
+  marginPercent    Float?   // Margem de contribuição
+  growthRate       Float?   // Taxa de crescimento
+  purchaseFreq     Float?   // Frequência de compra
+  performanceScore Int?     // Score 0-100
+  createdAt        DateTime @default(now())
+
+  @@unique([productId, marketId, month])
+  @@map("product_performance")
+}
+
+model MarketHealth {
+  id               String   @id @default(uuid())
+  marketId         String
+  month            DateTime
+  productDiversity Float?   // Diversidade de produtos
+  stockEfficiency  Float?   // Eficiência de estoque
+  revenueGrowth    Float?   // Crescimento de receita
+  customerRetention Float?  // Retenção de clientes
+  healthScore      Int?     // Score 0-100
+  createdAt        DateTime @default(now())
+
+  @@unique([marketId, month])
+  @@map("market_health")
+}
