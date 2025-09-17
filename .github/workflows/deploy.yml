@@ -45,6 +45,9 @@ jobs:
         ls -la MercadoFlow.Web/frontend/src/ || echo "⚠️ Frontend src faltando"
         echo "📋 Backend:"
         ls -la MercadoFlow.Web/backend/package.json MercadoFlow.Web/backend/Dockerfile || echo "⚠️ Arquivos backend faltando"
+        ls -la MercadoFlow.Web/backend/src/index.ts || echo "⚠️ Backend src faltando"
+        echo "📋 Controllers:"
+        ls -la MercadoFlow.Web/backend/src/controllers/ || echo "⚠️ Controllers faltando"
         echo "📋 Docker:"
         ls -la MercadoFlow.Web/docker-compose.yml MercadoFlow.Web/nginx/ || echo "⚠️ Arquivos Docker faltando"
 
@@ -158,7 +161,8 @@ jobs:
           # Validar estrutura
           echo '🔍 Validando estrutura MercadoFlow FULL STACK...'
           ls -la docker-compose.yml backend/Dockerfile || { echo '❌ Arquivos essenciais faltando!'; exit 1; }
-          ls -la backend/package.json || { echo '❌ Backend incompleto!'; exit 1; }
+          ls -la backend/package.json backend/src/index.ts || { echo '❌ Backend incompleto!'; exit 1; }
+          ls -la backend/src/controllers/ || { echo '❌ Controllers faltando!'; exit 1; }
           ls -la frontend/package.json frontend/src/ || { echo '❌ Frontend incompleto!'; exit 1; }
 
           # Configurar variáveis de produção
@@ -167,20 +171,29 @@ jobs:
           echo \"FRONTEND_PORT=${{ env.FRONTEND_PORT }}\" >> .env
           echo \"BACKEND_PORT=${{ env.BACKEND_PORT }}\" >> .env
           echo \"NGINX_PORT=${{ env.NGINX_PORT }}\" >> .env
+          echo \"REDIS_PORT=6379\" >> .env
           echo \"JWT_SECRET=mercadoflow-production-jwt-${{ github.sha }}\" >> .env
           echo \"NODE_ENV=production\" >> .env
+          echo \"PORT=3000\" >> .env
+          echo \"HOST=0.0.0.0\" >> .env
           echo \"REACT_APP_API_BASE_URL=http://${{ env.VPS_HOST }}:${{ env.BACKEND_PORT }}\" >> .env
           echo \"REACT_APP_ENVIRONMENT=production\" >> .env
-          echo \"CORS_ORIGIN=http://${{ env.VPS_HOST }}:${{ env.FRONTEND_PORT }},http://${{ env.VPS_HOST }}:${{ env.NGINX_PORT }},http://localhost:3000,http://localhost:5173\" >> .env
+          echo \"CORS_ORIGIN=http://${{ env.VPS_HOST }}:${{ env.NGINX_PORT }},http://localhost:3000,http://localhost:5173\" >> .env
           echo \"DATABASE_URL=file:./data/mercadoflow.db\" >> .env
           echo \"REDIS_URL=redis://redis:6379\" >> .env
+          echo \"MAX_FILE_SIZE=50MB\" >> .env
+          echo \"RATE_LIMIT_WINDOW_MS=900000\" >> .env
+          echo \"RATE_LIMIT_MAX_REQUESTS=100\" >> .env
 
           # Deploy com Docker Compose
           echo '🐳 Executando deploy com Docker Compose...'
           export BACKEND_PORT=${{ env.BACKEND_PORT }}
           export FRONTEND_PORT=${{ env.FRONTEND_PORT }}
           export NGINX_PORT=${{ env.NGINX_PORT }}
+          export REDIS_PORT=6379
           export REACT_APP_API_BASE_URL=http://${{ env.VPS_HOST }}:${{ env.BACKEND_PORT }}
+          export JWT_SECRET=mercadoflow-production-jwt-${{ github.sha }}
+          export CORS_ORIGIN=http://${{ env.VPS_HOST }}:${{ env.NGINX_PORT }},http://localhost:3000
 
           # Verificar se portas estão realmente livres
           echo '🔍 Verificando portas antes do deploy...'
