@@ -27,8 +27,8 @@ export interface UserInfo {
   email: string;
   name: string;
   role: UserRole;
-  marketId?: string;
-  industryId?: string;
+  marketId?: string | undefined;
+  industryId?: string | undefined;
   isActive: boolean;
   createdAt: Date;
 }

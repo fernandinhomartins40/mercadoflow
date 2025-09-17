@@ -601,7 +601,7 @@ router.get('/status/:chaveNFe', async (req: AuthRequest, res: Response) => {
     const user = req.user!;
 
     // Validate chave NFe format
-    if (!/^\d{44}$/.test(chaveNFe)) {
+    if (!chaveNFe || !/^\d{44}$/.test(chaveNFe)) {
       return res.status(400).json({
         success: false,
         error: {
@@ -628,7 +628,7 @@ router.get('/status/:chaveNFe', async (req: AuthRequest, res: Response) => {
 
     // Query database
     const invoice = await prisma.invoice.findUnique({
-      where: { chaveNFe },
+      where: { chaveNFe: chaveNFe! },
       select: {
         id: true,
         marketId: true,
@@ -670,7 +670,7 @@ router.get('/status/:chaveNFe', async (req: AuthRequest, res: Response) => {
         status: 'processed',
         invoiceId: invoice.id,
         processedAt: invoice.processedAt,
-        market: invoice.market
+        market: invoice.market || null
       }
     });
 
