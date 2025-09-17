@@ -20,7 +20,7 @@ COPY package*.json ./
 COPY tsconfig.json ./
 
 # Install dependencies
-RUN npm ci --only=production && npm cache clean --force
+RUN npm install --omit=dev && npm cache clean --force
 
 # Copy source code
 COPY src/ ./src/
@@ -64,7 +64,7 @@ FROM base AS development
 USER root
 
 # Install development dependencies
-RUN npm ci
+RUN npm install
 
 # Install nodemon globally
 RUN npm install -g nodemon
