@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { PrismaClient } from '@prisma/client';
 import { UnauthorizedError, ForbiddenError } from '../types/common.types';
-import { JwtPayload, UserInfo } from '../types/auth.types';
+import { JwtPayload, UserInfo, UserRole } from '../types/auth.types';
 import { ConfigService } from '../services/ConfigService';
 import { LoggerService } from '../services/LoggerService';
 import { RedisService } from '../services/RedisService';
@@ -16,7 +16,7 @@ export interface AuthRequest extends Request {
   user?: UserInfo;
 }
 
-export const authMiddleware = async (req: AuthRequest, res: Response, next: NextFunction) => {
+export const authMiddleware = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const authHeader = req.headers.authorization;
 
@@ -70,7 +70,7 @@ export const authMiddleware = async (req: AuthRequest, res: Response, next: Next
       id: user.id,
       email: user.email,
       name: user.name,
-      role: user.role,
+      role: user.role as UserRole,
       marketId: user.marketId || undefined,
       industryId: user.industryId || undefined,
       isActive: user.isActive,
@@ -125,7 +125,7 @@ export const authMiddleware = async (req: AuthRequest, res: Response, next: Next
 
 // Role-based access control middleware
 export const requireRole = (...allowedRoles: string[]) => {
-  return (req: AuthRequest, res: Response, next: NextFunction) => {
+  return (req: AuthRequest, res: Response, next: NextFunction): void => {
     if (!req.user) {
       return res.status(401).json({
         success: false,
@@ -310,7 +310,7 @@ export const optionalAuth = async (req: AuthRequest, res: Response, next: NextFu
 };
 
 // API Key authentication (for external integrations)
-export const apiKeyAuth = async (req: Request, res: Response, next: NextFunction) => {
+export const apiKeyAuth = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const apiKey = req.headers['x-api-key'] as string;
 

@@ -319,7 +319,7 @@ export class RedisService implements CacheService {
   async expire(key: string, seconds: number): Promise<boolean> {
     try {
       const result = await this.client.expire(key, seconds);
-      return result === 1;
+      return result === true;
     } catch (error) {
       this.logger.error('Redis: Failed to set expiry', { key, seconds, error });
       return false;
@@ -425,7 +425,7 @@ export class RedisService implements CacheService {
         lines.slice(1).forEach(line => {
           if (line && line.includes(':')) {
             const [key, value] = line.split(':');
-            if (result[sectionName]) {
+            if (result[sectionName] && key) {
               result[sectionName][key] = value;
             }
           }

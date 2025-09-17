@@ -77,7 +77,7 @@ export class ConfigService implements IConfigService {
       if (typeof defaultValue === 'number') {
         value = envValue ? parseInt(envValue, 10) : defaultValue;
       } else if (typeof defaultValue === 'boolean') {
-        value = envValue ? envValue.toLowerCase() === 'true' : defaultValue;
+        value = envValue ? (envValue.toLowerCase() === 'true') : defaultValue;
       }
 
       this.configs.set(key, value);
@@ -215,7 +215,7 @@ export class ConfigService implements IConfigService {
       const match = size.match(/^(\d+)(MB|KB|GB)?$/i);
       if (match) {
         const value = parseInt(match[1], 10);
-        const unit = (match[2] || 'MB').toUpperCase();
+        const unit = (match[2] || 'MB').toUpperCase() as string;
 
         switch (unit) {
           case 'KB':
@@ -250,7 +250,7 @@ export class ConfigService implements IConfigService {
     return {
       host: this.get('SMTP_HOST'),
       port: this.get('SMTP_PORT', 587),
-      secure: this.get('SMTP_PORT', 587) === 465,
+      secure: (this.get('SMTP_PORT', 587) as number) === 465,
       auth: {
         user: this.get('SMTP_USER'),
         pass: this.get('SMTP_PASS')
