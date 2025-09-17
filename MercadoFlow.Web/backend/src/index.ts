@@ -172,7 +172,7 @@ app.use(errorHandler);
 
 // Graceful shutdown
 const gracefulShutdown = async (signal: string) => {
-  logger.info(\`Received \${signal}, starting graceful shutdown...\`);
+  logger.info(`Received ${signal}, starting graceful shutdown...`);
 
   server.close(async (err) => {
     if (err) {
@@ -230,10 +230,10 @@ async function startServer() {
 
     // Start HTTP server
     server.listen(PORT, HOST, () => {
-      logger.info(\`🚀 MercadoFlow API server running on \${HOST}:\${PORT}\`);
-      logger.info(\`📚 API Documentation: http://\${HOST}:\${PORT}/api/v1/docs\`);
-      logger.info(\`💓 Health Check: http://\${HOST}:\${PORT}/api/v1/health\`);
-      logger.info(\`🌍 Environment: \${config.get('NODE_ENV', 'development')}\`);
+      logger.info(`🚀 MercadoFlow API server running on ${HOST}:${PORT}`);
+      logger.info(`📚 API Documentation: http://${HOST}:${PORT}/api/v1/docs`);
+      logger.info(`💓 Health Check: http://${HOST}:${PORT}/api/v1/health`);
+      logger.info(`🌍 Environment: ${config.get('NODE_ENV', 'development')}`);
     });
 
   } catch (error) {
