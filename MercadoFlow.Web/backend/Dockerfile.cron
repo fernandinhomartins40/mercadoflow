@@ -6,7 +6,9 @@ RUN apk add --no-cache \
     sqlite \
     curl \
     bash \
-    tzdata
+    tzdata \
+    openssl \
+    openssl-dev
 
 # Set timezone
 ENV TZ=America/Sao_Paulo

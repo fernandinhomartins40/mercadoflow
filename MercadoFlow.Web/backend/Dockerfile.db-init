@@ -2,7 +2,10 @@
 FROM node:20-alpine
 
 # Install system dependencies
-RUN apk add --no-cache sqlite
+RUN apk add --no-cache \
+    sqlite \
+    openssl \
+    openssl-dev
 
 # Set working directory
 WORKDIR /app

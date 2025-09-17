@@ -12,19 +12,12 @@ datasource db {
 
 // ==== AUTHENTICATION & USERS ====
 
-enum UserRole {
-  ADMIN
-  MARKET_OWNER
-  MARKET_MANAGER
-  INDUSTRY_USER
-}
-
 model User {
   id         String   @id @default(uuid())
   email      String   @unique
   password   String
   name       String
-  role       UserRole
+  role       String   // ADMIN, MARKET_OWNER, MARKET_MANAGER, INDUSTRY_USER
   marketId   String?
   industryId String?
   isActive   Boolean  @default(true)
@@ -41,12 +34,6 @@ model User {
 
 // ==== MARKETS & PDVs ====
 
-enum PlanType {
-  BASIC
-  INTERMEDIATE
-  ADVANCED
-}
-
 model Market {
   id       String   @id @default(uuid())
   name     String
@@ -56,7 +43,7 @@ model Market {
   state    String
   region   String
   ownerId  String
-  planType PlanType @default(BASIC)
+  planType String   @default("BASIC") // BASIC, INTERMEDIATE, ADVANCED
   isActive Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -92,20 +79,9 @@ model PDV {
 
 // ==== INVOICES & ITEMS ====
 
-enum DocumentType {
-  NFE
-  NFCE
-}
-
-enum XmlVersion {
-  VERSION_310
-  VERSION_400
-  UNKNOWN
-}
-
 model Invoice {
-  id                   String       @id @default(uuid())
-  chaveNFe             String       @unique
+  id                   String   @id @default(uuid())
+  chaveNFe             String   @unique
   marketId             String
   pdvId                String?
   serie                String
@@ -115,10 +91,10 @@ model Invoice {
   cpfCnpjDestinatario  String?
   valorTotal           Float
   rawXmlHash           String
-  documentType         DocumentType @default(NFE)
-  xmlVersion           XmlVersion   @default(VERSION_400)
-  processedAt          DateTime     @default(now())
-  createdAt            DateTime     @default(now())
+  documentType         String   @default("NFE") // NFE, NFCE
+  xmlVersion           String   @default("VERSION_400") // VERSION_310, VERSION_400, UNKNOWN
+  processedAt          DateTime @default(now())
+  createdAt            DateTime @default(now())
 
   // Relations
   market Market @relation(fields: [marketId], references: [id])
@@ -215,31 +191,16 @@ model MarketBasket {
 
 // ==== ALERTS & NOTIFICATIONS ====
 
-enum AlertType {
-  LOW_STOCK
-  HIGH_PERFORMING
-  SLOW_MOVING
-  EXPIRATION_RISK
-  PROMOTION_OPPORTUNITY
-}
-
-enum AlertPriority {
-  LOW
-  MEDIUM
-  HIGH
-  URGENT
-}
-
 model Alert {
-  id        String        @id @default(uuid())
+  id        String   @id @default(uuid())
   marketId  String
-  type      AlertType
+  type      String   // LOW_STOCK, HIGH_PERFORMING, SLOW_MOVING, EXPIRATION_RISK, PROMOTION_OPPORTUNITY
   title     String
   message   String
   productId String?
-  priority  AlertPriority @default(MEDIUM)
-  isRead    Boolean       @default(false)
-  createdAt DateTime      @default(now())
+  priority  String   @default("MEDIUM") // LOW, MEDIUM, HIGH, URGENT
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
 
   // Relations
   market  Market   @relation(fields: [marketId], references: [id])
@@ -266,25 +227,18 @@ model Industry {
   @@map("industries")
 }
 
-enum CampaignStatus {
-  DRAFT
-  ACTIVE
-  PAUSED
-  COMPLETED
-}
-
 model Campaign {
-  id            String         @id @default(uuid())
+  id            String   @id @default(uuid())
   industryId    String
   title         String
   description   String
-  targetRegions String // JSON array
+  targetRegions String   // JSON array
   startDate     DateTime
   endDate       DateTime
   budget        Float
-  status        CampaignStatus @default(DRAFT)
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  status        String   @default("DRAFT") // DRAFT, ACTIVE, PAUSED, COMPLETED
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   // Relations
   industry Industry @relation(fields: [industryId], references: [id])
