@@ -23,7 +23,6 @@ export class RedisService implements CacheService {
       url: redisUrl,
       socket: {
         connectTimeout: 10000,
-        lazyConnect: true,
         reconnectStrategy: (retries) => {
           if (retries > 10) {
             this.logger.error('Redis: Max reconnection attempts reached');
@@ -216,7 +215,7 @@ export class RedisService implements CacheService {
   async hget<T>(key: string, field: string): Promise<T | null> {
     try {
       const value = await this.client.hGet(key, field);
-      if (value === null) return null;
+      if (value === null || value === undefined) return null;
 
       try {
         return JSON.parse(value) as T;
@@ -319,7 +318,8 @@ export class RedisService implements CacheService {
   // Expire operations
   async expire(key: string, seconds: number): Promise<boolean> {
     try {
-      return (await this.client.expire(key, seconds)) === 1;
+      const result = await this.client.expire(key, seconds);
+      return result === 1;
     } catch (error) {
       this.logger.error('Redis: Failed to set expiry', { key, seconds, error });
       return false;
@@ -418,14 +418,16 @@ export class RedisService implements CacheService {
 
     sections.forEach(section => {
       const lines = section.split('\r\n');
-      if (lines[0].startsWith('#')) {
+      if (lines[0] && lines[0].startsWith('#')) {
         const sectionName = lines[0].substring(1).trim();
         result[sectionName] = {};
 
         lines.slice(1).forEach(line => {
           if (line && line.includes(':')) {
             const [key, value] = line.split(':');
-            result[sectionName][key] = value;
+            if (result[sectionName]) {
+              result[sectionName][key] = value;
+            }
           }
         });
       }

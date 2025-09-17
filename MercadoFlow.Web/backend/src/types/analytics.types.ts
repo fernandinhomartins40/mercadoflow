@@ -1,4 +1,6 @@
-import { AlertType, AlertPriority } from '@prisma/client';
+// Alert types (converted from Prisma enums to string literals)
+export type AlertType = 'LOW_STOCK' | 'HIGH_PERFORMING' | 'SLOW_MOVING' | 'EXPIRATION_RISK' | 'PROMOTION_OPPORTUNITY';
+export type AlertPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
 
 // Dashboard analytics types
 export interface DashboardMetrics {

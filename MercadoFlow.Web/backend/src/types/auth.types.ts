@@ -1,4 +1,5 @@
-import { UserRole } from '@prisma/client';
+// User role type (converted from Prisma enum to string literal)
+export type UserRole = 'ADMIN' | 'MARKET_OWNER' | 'MARKET_MANAGER' | 'INDUSTRY_USER';
 
 export interface LoginRequest {
   email: string;
