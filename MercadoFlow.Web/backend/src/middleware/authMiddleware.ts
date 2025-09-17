@@ -98,13 +98,14 @@ export const authMiddleware = async (req: AuthRequest, res: Response, next: Next
         endpoint: req.path
       });
 
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         error: {
           code: 'UNAUTHORIZED',
           message: error.message
         }
       });
+      return;
     }
 
     logger.error('Authentication middleware error', {
@@ -113,13 +114,14 @@ export const authMiddleware = async (req: AuthRequest, res: Response, next: Next
       endpoint: req.path
     });
 
-    return res.status(500).json({
+    res.status(500).json({
       success: false,
       error: {
         code: 'INTERNAL_ERROR',
         message: 'Authentication error'
       }
     });
+    return;
   }
 };
 
@@ -127,13 +129,14 @@ export const authMiddleware = async (req: AuthRequest, res: Response, next: Next
 export const requireRole = (...allowedRoles: string[]) => {
   return (req: AuthRequest, res: Response, next: NextFunction): void => {
     if (!req.user) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         error: {
           code: 'UNAUTHORIZED',
           message: 'Authentication required'
         }
       });
+      return;
     }
 
     if (!allowedRoles.includes(req.user.role)) {
@@ -144,13 +147,14 @@ export const requireRole = (...allowedRoles: string[]) => {
         endpoint: req.path
       });
 
-      return res.status(403).json({
+      res.status(403).json({
         success: false,
         error: {
           code: 'FORBIDDEN',
           message: 'Insufficient permissions'
         }
       });
+      return;
     }
 
     next();
@@ -343,13 +347,14 @@ export const apiKeyAuth = async (req: Request, res: Response, next: NextFunction
         endpoint: req.path
       });
 
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         error: {
           code: 'UNAUTHORIZED',
           message: error.message
         }
       });
+      return;
     }
 
     logger.error('API key middleware error', {
@@ -357,12 +362,13 @@ export const apiKeyAuth = async (req: Request, res: Response, next: NextFunction
       endpoint: req.path
     });
 
-    return res.status(500).json({
+    res.status(500).json({
       success: false,
       error: {
         code: 'INTERNAL_ERROR',
         message: 'API key validation error'
       }
     });
+    return;
   }
 };

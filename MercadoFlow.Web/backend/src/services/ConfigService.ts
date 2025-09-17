@@ -78,6 +78,8 @@ export class ConfigService implements IConfigService {
         value = envValue ? parseInt(envValue, 10) : defaultValue;
       } else if (typeof defaultValue === 'boolean') {
         value = envValue ? (envValue.toLowerCase() === 'true') : defaultValue;
+      } else {
+        value = envValue !== undefined ? envValue : defaultValue;
       }
 
       this.configs.set(key, value);
@@ -215,7 +217,7 @@ export class ConfigService implements IConfigService {
       const match = size.match(/^(\d+)(MB|KB|GB)?$/i);
       if (match) {
         const value = parseInt(match[1], 10);
-        const unit = (match[2] || 'MB').toUpperCase() as string;
+        const unit = ((match[2] || 'MB') as string).toUpperCase();
 
         switch (unit) {
           case 'KB':
