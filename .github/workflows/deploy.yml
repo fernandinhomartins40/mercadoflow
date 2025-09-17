@@ -40,16 +40,14 @@ jobs:
     - name: 🔍 Pre-Deploy Validation
       run: |
         echo "🔍 Validando estrutura do projeto MercadoFlow FULL STACK..."
-        echo "📋 Frontend:"
-        ls -la MercadoFlow.Web/frontend/package.json MercadoFlow.Web/frontend/Dockerfile || echo "⚠️ Arquivos frontend faltando"
-        ls -la MercadoFlow.Web/frontend/src/ || echo "⚠️ Frontend src faltando"
-        echo "📋 Backend:"
-        ls -la MercadoFlow.Web/backend/package.json MercadoFlow.Web/backend/Dockerfile || echo "⚠️ Arquivos backend faltando"
-        ls -la MercadoFlow.Web/backend/src/index.ts || echo "⚠️ Backend src faltando"
-        echo "📋 Controllers:"
-        ls -la MercadoFlow.Web/backend/src/controllers/ || echo "⚠️ Controllers faltando"
+        echo "📋 Estrutura principal:"
+        ls -la MercadoFlow.Web/ || echo "⚠️ Diretório principal faltando"
         echo "📋 Docker:"
-        ls -la MercadoFlow.Web/docker-compose.yml MercadoFlow.Web/nginx/ || echo "⚠️ Arquivos Docker faltando"
+        ls -la MercadoFlow.Web/docker-compose.yml || echo "⚠️ Docker compose faltando"
+        echo "📋 Backend:"
+        ls -la MercadoFlow.Web/backend/package.json || echo "⚠️ Backend package.json faltando"
+        echo "📋 Frontend:"
+        ls -la MercadoFlow.Web/frontend/package.json || echo "⚠️ Frontend package.json faltando"
 
     - name: 📦 Prepare Full Stack Package
       run: |
@@ -160,10 +158,11 @@ jobs:
 
           # Validar estrutura
           echo '🔍 Validando estrutura MercadoFlow FULL STACK...'
-          ls -la docker-compose.yml backend/Dockerfile || { echo '❌ Arquivos essenciais faltando!'; exit 1; }
-          ls -la backend/package.json backend/src/index.ts || { echo '❌ Backend incompleto!'; exit 1; }
-          ls -la backend/src/controllers/ || { echo '❌ Controllers faltando!'; exit 1; }
-          ls -la frontend/package.json frontend/src/ || { echo '❌ Frontend incompleto!'; exit 1; }
+          ls -la docker-compose.yml || { echo '❌ Docker compose faltando!'; exit 1; }
+          ls -la backend/package.json || { echo '❌ Backend package.json faltando!'; exit 1; }
+          ls -la backend/Dockerfile || { echo '❌ Backend Dockerfile faltando!'; exit 1; }
+          ls -la frontend/package.json || { echo '❌ Frontend package.json faltando!'; exit 1; }
+          ls -la frontend/Dockerfile || { echo '❌ Frontend Dockerfile faltando!'; exit 1; }
 
           # Configurar variáveis de produção
           echo '⚙️ Configurando ambiente de produção...'

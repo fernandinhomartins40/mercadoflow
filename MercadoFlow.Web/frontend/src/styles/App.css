@@ -1,0 +1,28 @@
+.App {
+  min-height: 100vh;
+  background-color: #f8fafc;
+}
+
+.App-header {
+  background-color: #1e293b;
+  padding: 20px;
+  color: white;
+  text-align: center;
+}
+
+.App-content {
+  padding: 20px;
+}
+
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+}
+
+.error {
+  color: #dc2626;
+  text-align: center;
+  padding: 20px;
+}

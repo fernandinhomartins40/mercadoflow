@@ -1,0 +1,362 @@
+<Window x:Class="MercadoFlow.Desktop.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="MercadoFlow Desktop Collector"
+        Height="800"
+        Width="1200"
+        MinHeight="600"
+        MinWidth="900"
+        WindowStartupLocation="CenterScreen">
+
+    <Window.Resources>
+        <!-- Converters -->
+        <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+
+        <!-- Data Templates -->
+        <DataTemplate x:Key="AlertTemplate">
+            <Border Style="{StaticResource CardStyle}" Background="{Binding TypeColor}" Opacity="0.9" Margin="4">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Ellipse Grid.Column="0"
+                             Width="8" Height="8"
+                             Fill="White"
+                             VerticalAlignment="Top"
+                             Margin="0,4,8,0"/>
+
+                    <StackPanel Grid.Column="1">
+                        <TextBlock Text="{Binding Title}"
+                                   FontWeight="SemiBold"
+                                   Foreground="White"/>
+                        <TextBlock Text="{Binding Message}"
+                                   Foreground="White"
+                                   Opacity="0.9"
+                                   TextWrapping="Wrap"/>
+                    </StackPanel>
+
+                    <TextBlock Grid.Column="2"
+                               Text="{Binding Timestamp, StringFormat=HH:mm}"
+                               Foreground="White"
+                               Opacity="0.7"
+                               VerticalAlignment="Top"
+                               FontSize="10"/>
+                </Grid>
+            </Border>
+        </DataTemplate>
+
+        <DataTemplate x:Key="QueueItemTemplate">
+            <Border Style="{StaticResource CardStyle}" Margin="2">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="100"/>
+                        <ColumnDefinition Width="60"/>
+                        <ColumnDefinition Width="120"/>
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Grid.Column="0"
+                               Text="{Binding ChaveNFe}"
+                               FontFamily="Consolas"
+                               VerticalAlignment="Center"/>
+
+                    <Border Grid.Column="1"
+                            Background="{Binding StatusColor}"
+                            CornerRadius="12"
+                            Padding="8,2">
+                        <TextBlock Text="{Binding StatusText}"
+                                   Foreground="White"
+                                   FontSize="10"
+                                   HorizontalAlignment="Center"/>
+                    </Border>
+
+                    <TextBlock Grid.Column="2"
+                               Text="{Binding Tentativas}"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"/>
+
+                    <TextBlock Grid.Column="3"
+                               Text="{Binding DataCriacao, StringFormat=dd/MM HH:mm}"
+                               VerticalAlignment="Center"
+                               HorizontalAlignment="Center"
+                               FontSize="10"/>
+                </Grid>
+            </Border>
+        </DataTemplate>
+    </Window.Resources>
+
+    <Grid Background="{StaticResource BackgroundBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Border Grid.Row="0"
+                Background="{StaticResource PrimaryBrush}"
+                Padding="16,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                    <TextBlock Text="MercadoFlow Desktop Collector"
+                               Foreground="White"
+                               FontSize="18"
+                               FontWeight="SemiBold"
+                               VerticalAlignment="Center"/>
+
+                    <Border Background="{StaticResource AccentBrush}"
+                            CornerRadius="8"
+                            Padding="6,2"
+                            Margin="12,0,0,0">
+                        <TextBlock Text="v1.0.0"
+                                   Foreground="White"
+                                   FontSize="10"/>
+                    </Border>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                    <Button Content="Configurações"
+                            Style="{StaticResource SecondaryButtonStyle}"
+                            Command="{Binding OpenConfigurationCommand}"
+                            Foreground="White"
+                            BorderBrush="White"/>
+
+                    <Button Content="Logs"
+                            Style="{StaticResource SecondaryButtonStyle}"
+                            Command="{Binding OpenLogsCommand}"
+                            Foreground="White"
+                            BorderBrush="White"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Main Content -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <Grid Margin="16">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <!-- Control Panel -->
+                <Border Grid.Row="0" Style="{StaticResource CardStyle}" Margin="0,0,0,16">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Service Status -->
+                        <StackPanel Grid.Column="0" Margin="0,0,16,0">
+                            <TextBlock Text="Status do Serviço"
+                                       Style="{StaticResource HeaderTextStyle}"/>
+
+                            <StackPanel Orientation="Horizontal">
+                                <Ellipse Width="12" Height="12"
+                                         Fill="{Binding ServiceStatusColor}"
+                                         Margin="0,0,8,0"/>
+                                <TextBlock Text="{Binding ServiceStatusText}"
+                                           FontWeight="Medium"/>
+                            </StackPanel>
+                        </StackPanel>
+
+                        <!-- Connectivity Status -->
+                        <StackPanel Grid.Column="1" Margin="0,0,16,0">
+                            <TextBlock Text="Conectividade API"
+                                       Style="{StaticResource HeaderTextStyle}"/>
+
+                            <StackPanel Orientation="Horizontal">
+                                <Ellipse Width="12" Height="12"
+                                         Fill="{Binding ConnectivityStatusColor}"
+                                         Margin="0,0,8,0"/>
+                                <TextBlock Text="{Binding ConnectivityStatusText}"
+                                           FontWeight="Medium"/>
+                            </StackPanel>
+                        </StackPanel>
+
+                        <!-- Control Buttons -->
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
+                            <Button Content="Iniciar"
+                                    Style="{StaticResource PrimaryButtonStyle}"
+                                    Command="{Binding StartCommand}"
+                                    IsEnabled="{Binding IsStartButtonEnabled}"
+                                    MinWidth="80"/>
+
+                            <Button Content="Parar"
+                                    Style="{StaticResource SecondaryButtonStyle}"
+                                    Command="{Binding StopCommand}"
+                                    IsEnabled="{Binding IsStopButtonEnabled}"
+                                    MinWidth="80"/>
+
+                            <Button Content="Testar API"
+                                    Style="{StaticResource SecondaryButtonStyle}"
+                                    Command="{Binding TestConnectionCommand}"
+                                    MinWidth="80"/>
+
+                            <Button Content="Atualizar"
+                                    Style="{StaticResource SecondaryButtonStyle}"
+                                    Command="{Binding RefreshCommand}"
+                                    MinWidth="80"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <!-- Statistics Cards -->
+                <Grid Grid.Row="1" Margin="0,0,0,16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Files Today -->
+                    <Border Grid.Column="0" Style="{StaticResource CardStyle}">
+                        <StackPanel>
+                            <TextBlock Text="Arquivos Hoje"
+                                       Style="{StaticResource SecondaryTextStyle}"/>
+                            <TextBlock Text="{Binding Statistics.FilesProcessedToday}"
+                                       FontSize="24"
+                                       FontWeight="Bold"
+                                       Foreground="{StaticResource PrimaryBrush}"/>
+                            <TextBlock Text="{Binding Statistics.FilesErrorToday, StringFormat={}{0} erros}"
+                                       Style="{StaticResource SecondaryTextStyle}"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Queue Size -->
+                    <Border Grid.Column="1" Style="{StaticResource CardStyle}">
+                        <StackPanel>
+                            <TextBlock Text="Fila de Envio"
+                                       Style="{StaticResource SecondaryTextStyle}"/>
+                            <TextBlock Text="{Binding QueueStatistics.PendingItems}"
+                                       FontSize="24"
+                                       FontWeight="Bold"
+                                       Foreground="{StaticResource InfoBrush}"/>
+                            <TextBlock Text="pendentes"
+                                       Style="{StaticResource SecondaryTextStyle}"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Success Rate -->
+                    <Border Grid.Column="2" Style="{StaticResource CardStyle}">
+                        <StackPanel>
+                            <TextBlock Text="Taxa de Sucesso"
+                                       Style="{StaticResource SecondaryTextStyle}"/>
+                            <TextBlock Text="{Binding QueueStatistics.SuccessRate, StringFormat={}{0:F1}%}"
+                                       FontSize="24"
+                                       FontWeight="Bold"
+                                       Foreground="{StaticResource SuccessBrush}"/>
+                            <TextBlock Text="envios bem-sucedidos"
+                                       Style="{StaticResource SecondaryTextStyle}"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Uptime -->
+                    <Border Grid.Column="3" Style="{StaticResource CardStyle}">
+                        <StackPanel>
+                            <TextBlock Text="Tempo Ativo"
+                                       Style="{StaticResource SecondaryTextStyle}"/>
+                            <TextBlock Text="{Binding Statistics.TotalUptime, StringFormat=hh\\:mm}"
+                                       FontSize="24"
+                                       FontWeight="Bold"
+                                       Foreground="{StaticResource AccentBrush}"/>
+                            <TextBlock Text="horas:minutos"
+                                       Style="{StaticResource SecondaryTextStyle}"/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+
+                <!-- Main Dashboard -->
+                <Grid Grid.Row="2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="2*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Queue Items -->
+                    <Border Grid.Column="0" Style="{StaticResource CardStyle}" Margin="0,0,8,0">
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Top"
+                                       Text="Fila de Processamento"
+                                       Style="{StaticResource HeaderTextStyle}"/>
+
+                            <!-- Queue Header -->
+                            <Grid DockPanel.Dock="Top" Margin="0,0,0,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="100"/>
+                                    <ColumnDefinition Width="60"/>
+                                    <ColumnDefinition Width="120"/>
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock Grid.Column="0" Text="Chave NFe" FontWeight="SemiBold"/>
+                                <TextBlock Grid.Column="1" Text="Status" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+                                <TextBlock Grid.Column="2" Text="Tentativas" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+                                <TextBlock Grid.Column="3" Text="Criado" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+                            </Grid>
+
+                            <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="400">
+                                <ItemsControl ItemsSource="{Binding QueueItems}"
+                                              ItemTemplate="{StaticResource QueueItemTemplate}"/>
+                            </ScrollViewer>
+                        </DockPanel>
+                    </Border>
+
+                    <!-- Alerts -->
+                    <Border Grid.Column="1" Style="{StaticResource CardStyle}" Margin="8,0,0,0">
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Top"
+                                       Text="Alertas"
+                                       Style="{StaticResource HeaderTextStyle}"/>
+
+                            <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="400">
+                                <ItemsControl ItemsSource="{Binding Alerts}"
+                                              ItemTemplate="{StaticResource AlertTemplate}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <StackPanel/>
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                </ItemsControl>
+                            </ScrollViewer>
+                        </DockPanel>
+                    </Border>
+                </Grid>
+            </Grid>
+        </ScrollViewer>
+
+        <!-- Status Bar -->
+        <Border Grid.Row="2"
+                Background="{StaticResource SurfaceBrush}"
+                BorderBrush="#E0E0E0"
+                BorderThickness="0,1,0,0"
+                Padding="16,8">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0"
+                           Text="{Binding StatusMessage}"
+                           VerticalAlignment="Center"/>
+
+                <TextBlock Grid.Column="1"
+                           Text="{Binding Source={x:Static sys:DateTime.Now}, StringFormat=dd/MM/yyyy HH:mm:ss}"
+                           VerticalAlignment="Center"
+                           Style="{StaticResource SecondaryTextStyle}"/>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>
