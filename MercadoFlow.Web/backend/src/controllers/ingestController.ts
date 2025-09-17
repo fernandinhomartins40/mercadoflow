@@ -617,6 +617,7 @@ router.get('/status/:chaveNFe', async (req: AuthRequest, res: Response) => {
       return res.json({
         success: true,
         data: {
+          id: cachedInvoiceId as string,
           chaveNFe,
           status: 'processed',
           invoiceId: cachedInvoiceId,
@@ -664,6 +665,7 @@ router.get('/status/:chaveNFe', async (req: AuthRequest, res: Response) => {
     res.json({
       success: true,
       data: {
+        id: invoice.id,
         chaveNFe,
         status: 'processed',
         invoiceId: invoice.id,

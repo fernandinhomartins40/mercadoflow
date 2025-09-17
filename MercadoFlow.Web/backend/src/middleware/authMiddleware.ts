@@ -71,8 +71,8 @@ export const authMiddleware = async (req: AuthRequest, res: Response, next: Next
       email: user.email,
       name: user.name,
       role: user.role as UserRole,
-      marketId: user.marketId || undefined,
-      industryId: user.industryId || undefined,
+      marketId: user.marketId ?? undefined,
+      industryId: user.industryId ?? undefined,
       isActive: user.isActive,
       createdAt: user.createdAt
     };

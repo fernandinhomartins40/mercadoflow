@@ -204,7 +204,7 @@ process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 // Unhandled promise rejection
 process.on('unhandledRejection', (reason, promise) => {
-  logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  logger.error('Unhandled Rejection at:', { promise, reason });
   gracefulShutdown('unhandledRejection');
 });
 

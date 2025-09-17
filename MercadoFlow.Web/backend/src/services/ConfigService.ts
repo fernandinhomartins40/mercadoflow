@@ -71,18 +71,18 @@ export class ConfigService implements IConfigService {
     // Load defaults and override with environment variables
     Object.entries(defaults).forEach(([key, defaultValue]) => {
       const envValue = process.env[key];
-      let value = envValue !== undefined ? envValue : defaultValue;
 
       // Type conversion
       if (typeof defaultValue === 'number') {
-        value = envValue ? parseInt(envValue, 10) : defaultValue;
+        const value = envValue ? parseInt(envValue, 10) : defaultValue;
+        this.configs.set(key, value);
       } else if (typeof defaultValue === 'boolean') {
-        value = envValue ? (envValue.toLowerCase() === 'true') : defaultValue;
+        const value = envValue ? (envValue.toLowerCase() === 'true') : defaultValue;
+        this.configs.set(key, value);
       } else {
-        value = envValue !== undefined ? envValue : defaultValue;
+        const value = envValue !== undefined ? envValue : defaultValue;
+        this.configs.set(key, value);
       }
-
-      this.configs.set(key, value);
     });
   }
 
@@ -215,7 +215,7 @@ export class ConfigService implements IConfigService {
     const size = this.get('MAX_FILE_SIZE', '50MB');
     if (typeof size === 'string') {
       const match = size.match(/^(\d+)(MB|KB|GB)?$/i);
-      if (match) {
+      if (match && match[1]) {
         const value = parseInt(match[1], 10);
         const unit = ((match[2] || 'MB') as string).toUpperCase();
 
