@@ -166,23 +166,23 @@ jobs:
 
           # Configurar variáveis de produção
           echo '⚙️ Configurando ambiente de produção...'
-          echo \"VPS_HOST=${{ env.VPS_HOST }}\" > .env
-          echo \"FRONTEND_PORT=${{ env.FRONTEND_PORT }}\" >> .env
-          echo \"BACKEND_PORT=${{ env.BACKEND_PORT }}\" >> .env
-          echo \"NGINX_PORT=${{ env.NGINX_PORT }}\" >> .env
-          echo \"REDIS_PORT=6379\" >> .env
-          echo \"JWT_SECRET=mercadoflow-production-jwt-${{ github.sha }}\" >> .env
-          echo \"NODE_ENV=production\" >> .env
-          echo \"PORT=3000\" >> .env
-          echo \"HOST=0.0.0.0\" >> .env
-          echo \"REACT_APP_API_BASE_URL=http://${{ env.VPS_HOST }}:${{ env.BACKEND_PORT }}\" >> .env
-          echo \"REACT_APP_ENVIRONMENT=production\" >> .env
-          echo \"CORS_ORIGIN=http://${{ env.VPS_HOST }}:${{ env.NGINX_PORT }},http://localhost:3000,http://localhost:5173\" >> .env
-          echo \"DATABASE_URL=file:./data/mercadoflow.db\" >> .env
-          echo \"REDIS_URL=redis://redis:6379\" >> .env
-          echo \"MAX_FILE_SIZE=50MB\" >> .env
-          echo \"RATE_LIMIT_WINDOW_MS=900000\" >> .env
-          echo \"RATE_LIMIT_MAX_REQUESTS=100\" >> .env
+          echo "VPS_HOST=${{ env.VPS_HOST }}" > .env
+          echo "FRONTEND_PORT=${{ env.FRONTEND_PORT }}" >> .env
+          echo "BACKEND_PORT=${{ env.BACKEND_PORT }}" >> .env
+          echo "NGINX_PORT=${{ env.NGINX_PORT }}" >> .env
+          echo "REDIS_PORT=6379" >> .env
+          echo "JWT_SECRET=mercadoflow-production-jwt-${{ github.sha }}" >> .env
+          echo "NODE_ENV=production" >> .env
+          echo "PORT=3000" >> .env
+          echo "HOST=0.0.0.0" >> .env
+          echo "REACT_APP_API_BASE_URL=http://${{ env.VPS_HOST }}:${{ env.BACKEND_PORT }}" >> .env
+          echo "REACT_APP_ENVIRONMENT=production" >> .env
+          echo "CORS_ORIGIN=http://${{ env.VPS_HOST }}:${{ env.NGINX_PORT }},http://localhost:3000,http://localhost:5173" >> .env
+          echo "DATABASE_URL=file:./data/mercadoflow.db" >> .env
+          echo "REDIS_URL=redis://redis:6379" >> .env
+          echo "MAX_FILE_SIZE=50MB" >> .env
+          echo "RATE_LIMIT_WINDOW_MS=900000" >> .env
+          echo "RATE_LIMIT_MAX_REQUESTS=100" >> .env
 
           # Deploy com Docker Compose
           echo '🐳 Executando deploy com Docker Compose...'
