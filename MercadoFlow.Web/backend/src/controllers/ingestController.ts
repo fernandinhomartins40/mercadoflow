@@ -399,7 +399,7 @@ router.post('/invoice', ingestRateLimit, async (req: AuthRequest, res: Response)
         success: true,
         data: {
           invoiceId: result.invoiceId!,
-          warnings: validation.warnings.length > 0 ? validation.warnings : undefined
+          warnings: validation.warnings && validation.warnings.length > 0 ? validation.warnings : undefined
         },
         message: 'Invoice processed successfully'
       };
@@ -443,7 +443,7 @@ router.post('/invoice', ingestRateLimit, async (req: AuthRequest, res: Response)
       body: req.body
     });
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: {
         code: 'INTERNAL_ERROR',
@@ -489,13 +489,13 @@ router.post('/batch', ingestRateLimit, async (req: AuthRequest, res: Response) =
 
       try {
         // Validate invoice if requested
-        if (processOptions.validateSchema !== false) {
+        if (processOptions?.validateSchema !== false) {
           const validation = await validateInvoice(invoice.invoice);
           if (!validation.isValid) {
             results.errors++;
             results.results.push({
               chaveNFe: invoice.chaveNFe,
-              status: 'error',
+              status: 'error' as const,
               message: 'Validation failed: ' + validation.errors.map(e => e.message).join(', ')
             });
             continue;
@@ -503,7 +503,7 @@ router.post('/batch', ingestRateLimit, async (req: AuthRequest, res: Response) =
         }
 
         // Check for duplicates if requested
-        if (processOptions.skipDuplicates !== false) {
+        if (processOptions?.skipDuplicates !== false) {
           const existing = await prisma.invoice.findUnique({
             where: { chaveNFe: invoice.chaveNFe }
           });
@@ -512,7 +512,7 @@ router.post('/batch', ingestRateLimit, async (req: AuthRequest, res: Response) =
             results.skipped++;
             results.results.push({
               chaveNFe: invoice.chaveNFe,
-              status: 'skipped',
+              status: 'skipped' as const,
               message: 'Invoice already exists'
             });
             continue;
@@ -526,14 +526,14 @@ router.post('/batch', ingestRateLimit, async (req: AuthRequest, res: Response) =
           results.processed++;
           results.results.push({
             chaveNFe: invoice.chaveNFe,
-            status: 'success',
-            invoiceId: result.invoiceId
+            status: 'success' as const,
+            invoiceId: result.invoiceId || undefined
           });
         } else {
           results.errors++;
           results.results.push({
             chaveNFe: invoice.chaveNFe,
-            status: 'error',
+            status: 'error' as const,
             message: result.error || 'Processing failed'
           });
         }
@@ -542,7 +542,7 @@ router.post('/batch', ingestRateLimit, async (req: AuthRequest, res: Response) =
         results.errors++;
         results.results.push({
           chaveNFe: invoice.chaveNFe,
-          status: 'error',
+          status: 'error' as const,
           message: error instanceof Error ? error.message : 'Unknown error'
         });
       }
@@ -581,7 +581,7 @@ router.post('/batch', ingestRateLimit, async (req: AuthRequest, res: Response) =
       userId: req.user?.id
     });
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: {
         code: 'INTERNAL_ERROR',
@@ -679,7 +679,7 @@ router.get('/status/:chaveNFe', async (req: AuthRequest, res: Response) => {
       userId: req.user?.id
     });
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: {
         code: 'INTERNAL_ERROR',

@@ -98,7 +98,7 @@ async function generateTokens(user: UserInfo): Promise<{ token: string; refreshT
     industryId: user.industryId
   };
 
-  const token = jwt.sign(payload, jwtSecret, { expiresIn: jwtExpiresIn });
+  const token = jwt.sign(payload, jwtSecret, { expiresIn: jwtExpiresIn || '1h' });
   const refreshToken = jwt.sign(payload, jwtSecret, { expiresIn: '30d' });
 
   // Store refresh token in Redis
@@ -230,7 +230,7 @@ router.post('/login', authRateLimit, async (req: Request, res: Response) => {
     }
 
     logger.error('Login error', { error, email: req.body.email });
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: {
         code: 'INTERNAL_ERROR',
@@ -299,8 +299,8 @@ router.post('/register', generalRateLimit, async (req: Request, res: Response) =
         password: hashedPassword,
         name,
         role,
-        marketId,
-        industryId,
+        marketId: marketId || null,
+        industryId: industryId || null,
         isActive: true
       },
       include: {
@@ -356,7 +356,7 @@ router.post('/register', generalRateLimit, async (req: Request, res: Response) =
     }
 
     logger.error('Registration error', { error, email: req.body.email });
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: {
         code: 'INTERNAL_ERROR',
@@ -435,7 +435,7 @@ router.post('/refresh', generalRateLimit, async (req: Request, res: Response) =>
     }
 
     logger.error('Token refresh error', { error });
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: {
         code: 'INTERNAL_ERROR',
@@ -480,7 +480,7 @@ router.post('/logout', authMiddleware, async (req: AuthRequest, res: Response) =
 
   } catch (error) {
     logger.error('Logout error', { error, userId: req.user?.id });
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: {
         code: 'INTERNAL_ERROR',
@@ -548,7 +548,7 @@ router.get('/profile', authMiddleware, async (req: AuthRequest, res: Response) =
     }
 
     logger.error('Profile fetch error', { error, userId: req.user?.id });
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: {
         code: 'INTERNAL_ERROR',
@@ -634,7 +634,7 @@ router.put('/change-password', authMiddleware, async (req: AuthRequest, res: Res
     }
 
     logger.error('Change password error', { error, userId: req.user?.id });
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: {
         code: 'INTERNAL_ERROR',
