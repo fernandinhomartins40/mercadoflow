@@ -15,19 +15,19 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 # Create app directory
 WORKDIR /app
 
-# Copy package files
+# Copy package files and Prisma schema first
 COPY package*.json ./
 COPY tsconfig.json ./
+COPY prisma/ ./prisma/
 
 # Install dependencies
 RUN npm install --omit=dev && npm cache clean --force
 
-# Copy source code
-COPY src/ ./src/
-COPY prisma/ ./prisma/
-
 # Generate Prisma client
 RUN npx prisma generate
+
+# Copy source code
+COPY src/ ./src/
 
 # Build application
 RUN npm run build
