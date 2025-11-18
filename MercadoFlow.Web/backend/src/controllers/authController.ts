@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { z } from 'zod';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 import rateLimit from 'express-rate-limit';
 
 import {
@@ -24,7 +24,6 @@ import { RedisService } from '../services/RedisService';
 import { authMiddleware, AuthRequest } from '../middleware/authMiddleware';
 
 const router = Router();
-const prisma = new PrismaClient();
 const config = new ConfigService();
 const logger = new LoggerService();
 const redis = new RedisService();
@@ -456,13 +455,14 @@ router.post('/logout', authMiddleware, async (req: AuthRequest, res: Response) =
     const token = authHeader?.substring(7); // Remove 'Bearer '
 
     if (token) {
-      // Add token to blacklist
+      // Add token to blacklist with individual expiration
       const decoded = jwt.decode(token) as any;
       const expiresIn = decoded.exp - Math.floor(Date.now() / 1000);
 
       if (expiresIn > 0) {
-        await redis.sadd('blacklisted_tokens', token);
-        await redis.expire(`blacklisted_tokens`, expiresIn);
+        // Store token with its own expiration (Redis string with TTL)
+        const tokenKey = `blacklist:token:${token}`;
+        await redis.set(tokenKey, '1', expiresIn);
       }
     }
 

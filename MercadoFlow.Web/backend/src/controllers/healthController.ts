@@ -1,12 +1,11 @@
 import { Router, Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 import { HealthCheckResponse } from '../types/api.types';
 import { ConfigService } from '../services/ConfigService';
 import { LoggerService } from '../services/LoggerService';
 import { RedisService } from '../services/RedisService';
 
 const router = Router();
-const prisma = new PrismaClient();
 const config = new ConfigService();
 const logger = new LoggerService();
 const redis = new RedisService();

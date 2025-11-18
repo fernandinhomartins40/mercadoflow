@@ -1,13 +1,12 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 import { UnauthorizedError, ForbiddenError } from '../types/common.types';
 import { JwtPayload, UserInfo, UserRole } from '../types/auth.types';
 import { ConfigService } from '../services/ConfigService';
 import { LoggerService } from '../services/LoggerService';
 import { RedisService } from '../services/RedisService';
 
-const prisma = new PrismaClient();
 const config = new ConfigService();
 const logger = new LoggerService();
 const redis = new RedisService();
@@ -26,8 +25,9 @@ export const authMiddleware = async (req: AuthRequest, res: Response, next: Next
 
     const token = authHeader.substring(7);
 
-    // Check if token is blacklisted
-    const isBlacklisted = await redis.sismember('blacklisted_tokens', token);
+    // Check if token is blacklisted (using individual keys)
+    const tokenKey = `blacklist:token:${token}`;
+    const isBlacklisted = await redis.exists(tokenKey);
     if (isBlacklisted) {
       throw new UnauthorizedError('Token has been revoked');
     }
