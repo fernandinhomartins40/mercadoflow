@@ -101,6 +101,10 @@ model Invoice {
   pdv    PDV?   @relation(fields: [pdvId], references: [id])
   items  InvoiceItem[]
 
+  @@index([marketId, dataEmissao])
+  @@index([marketId, createdAt])
+  @@index([dataEmissao])
+  @@index([cnpjEmitente])
   @@map("invoices")
 }
 
@@ -167,6 +171,9 @@ model SalesAnalytics {
   product Product @relation(fields: [productId], references: [id])
 
   @@unique([marketId, productId, date])
+  @@index([marketId, date])
+  @@index([productId, date])
+  @@index([date])
   @@map("sales_analytics")
 }
 
@@ -206,6 +213,10 @@ model Alert {
   market  Market   @relation(fields: [marketId], references: [id])
   product Product? @relation(fields: [productId], references: [id])
 
+  @@index([marketId, isRead, priority])
+  @@index([marketId, type])
+  @@index([isRead])
+  @@index([createdAt])
   @@map("alerts")
 }
 
@@ -312,6 +323,8 @@ model DailySalesSummary {
   createdAt        DateTime @default(now())
 
   @@unique([date, marketId, productId])
+  @@index([marketId, date])
+  @@index([productId, date])
   @@map("daily_sales_summary")
 }
 
