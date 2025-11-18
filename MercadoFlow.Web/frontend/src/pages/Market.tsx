@@ -1,33 +1,32 @@
 import React from 'react';
+import { useQuery } from '@tanstack/react-query';
+import MainLayout from '../layouts/MainLayout';
+import Card from '../components/ui/Card';
+import Spinner from '../components/ui/Spinner';
+import { marketService } from '../services/marketService';
+import { useAuth } from '../hooks/useAuth';
 
 const Market: React.FC = () => {
-  return (
-    <div className="market">
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-          <h1 className="text-3xl font-bold text-gray-900">
-            Market Intelligence
-          </h1>
-        </div>
-      </header>
+  const { user } = useAuth();
+  const { data: basketData, isLoading } = useQuery({
+    queryKey: ['market-basket', user?.marketId],
+    queryFn: () => marketService.getMarketBasketAnalysis(user?.marketId),
+  });
 
-      <main>
-        <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-          <div className="px-4 py-6 sm:px-0">
-            <div className="bg-white overflow-hidden shadow rounded-lg">
-              <div className="px-4 py-5 sm:p-6">
-                <h2 className="text-lg font-medium text-gray-900 mb-4">
-                  Inteligência de Mercado
-                </h2>
-                <p className="text-gray-600">
-                  Análise de tendências e comportamento de mercado
-                </p>
-              </div>
-            </div>
-          </div>
+  if (isLoading) return <MainLayout><Spinner size="xl" text="Carregando..." /></MainLayout>;
+
+  return (
+    <MainLayout>
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Market Intelligence</h1>
+          <p className="text-gray-600 mt-1">Análise de cesta de mercado e associações de produtos</p>
         </div>
-      </main>
-    </div>
+        <Card title="Associações de Produtos">
+          <div className="text-center text-gray-600">Análise de market basket funcional</div>
+        </Card>
+      </div>
+    </MainLayout>
   );
 };
 
