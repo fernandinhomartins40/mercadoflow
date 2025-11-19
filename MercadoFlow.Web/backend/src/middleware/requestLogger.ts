@@ -40,12 +40,22 @@ export const requestLogger = (req: RequestWithId, res: Response, next: NextFunct
     logger.http('Incoming request', requestInfo);
   }
 
-  // Capture response data
+  // Capture response size without storing body (prevents memory leak)
+  let responseSize = 0;
   const originalSend = res.send;
-  let responseBody: any;
 
   res.send = function(body: any) {
-    responseBody = body;
+    // Calculate size without storing the entire body
+    if (body) {
+      if (typeof body === 'string') {
+        responseSize = Buffer.byteLength(body);
+      } else if (Buffer.isBuffer(body)) {
+        responseSize = body.length;
+      } else {
+        // For objects, estimate size (avoid JSON.stringify for large objects)
+        responseSize = 0;
+      }
+    }
     return originalSend.call(this, body);
   };
 
@@ -59,7 +69,7 @@ export const requestLogger = (req: RequestWithId, res: Response, next: NextFunct
       url: req.url,
       statusCode: res.statusCode,
       duration,
-      responseSize: res.get('Content-Length') || (responseBody ? JSON.stringify(responseBody).length : 0),
+      responseSize: parseInt(res.get('Content-Length') || '0') || responseSize,
       ip: getClientIP(req),
       userAgent: req.get('User-Agent'),
       timestamp: new Date().toISOString()

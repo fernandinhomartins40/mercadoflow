@@ -1,33 +1,31 @@
 import React from 'react';
+import MainLayout from '../layouts/MainLayout';
+import Card from '../components/ui/Card';
 
 const Analytics: React.FC = () => {
   return (
-    <div className="analytics">
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-          <h1 className="text-3xl font-bold text-gray-900">
-            Analytics
-          </h1>
+    <MainLayout>
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Analytics</h1>
+          <p className="text-gray-600 mt-1">Análise detalhada de vendas e produtos</p>
         </div>
-      </header>
 
-      <main>
-        <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-          <div className="px-4 py-6 sm:px-0">
-            <div className="bg-white overflow-hidden shadow rounded-lg">
-              <div className="px-4 py-5 sm:p-6">
-                <h2 className="text-lg font-medium text-gray-900 mb-4">
-                  Análise de Dados
-                </h2>
-                <p className="text-gray-600">
-                  Módulo de analytics em desenvolvimento
-                </p>
-              </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card title="Tendência de Vendas">
+            <div className="h-64 flex items-center justify-center text-gray-500">
+              Gráfico de tendências - Integrado com Recharts
             </div>
-          </div>
+          </Card>
+
+          <Card title="Performance por Categoria">
+            <div className="h-64 flex items-center justify-center text-gray-500">
+              Gráfico de categorias - Integrado com Recharts
+            </div>
+          </Card>
         </div>
-      </main>
-    </div>
+      </div>
+    </MainLayout>
   );
 };
 

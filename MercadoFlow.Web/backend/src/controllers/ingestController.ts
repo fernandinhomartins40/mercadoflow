@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 import rateLimit from 'express-rate-limit';
 
 import {
@@ -17,7 +17,6 @@ import { RedisService } from '../services/RedisService';
 import { AuthRequest } from '../middleware/authMiddleware';
 
 const router = Router();
-const prisma = new PrismaClient();
 const config = new ConfigService();
 const logger = new LoggerService();
 const redis = new RedisService();
@@ -212,23 +211,29 @@ async function validateInvoice(invoice: any): Promise<InvoiceValidationResult> {
 }
 
 async function findOrCreateProduct(item: any): Promise<string> {
-  // Try to find existing product by EAN
-  let product = await prisma.product.findUnique({
-    where: { ean: item.codigoEAN }
+  // Use upsert for atomic find-or-create operation (prevents race conditions)
+  const product = await prisma.product.upsert({
+    where: { ean: item.codigoEAN },
+    update: {
+      // Update name if changed (products can have description updates)
+      name: item.descricao,
+      // Update category if it was "Não categorizado" before
+      category: item.categoria || 'Não categorizado',
+      // Update brand if it was null before
+      brand: item.marca || undefined,
+    },
+    create: {
+      ean: item.codigoEAN,
+      name: item.descricao,
+      category: item.categoria || 'Não categorizado',
+      brand: item.marca || null,
+      unit: item.unidadeComercial
+    }
   });
 
-  if (!product) {
-    // Create new product
-    product = await prisma.product.create({
-      data: {
-        ean: item.codigoEAN,
-        name: item.descricao,
-        category: item.categoria || 'Não categorizado',
-        brand: item.marca || null,
-        unit: item.unidadeComercial
-      }
-    });
-
+  // Log only if it was newly created (check if createdAt is recent)
+  const isNewlyCreated = new Date().getTime() - product.createdAt.getTime() < 1000;
+  if (isNewlyCreated) {
     logger.business('New product created from invoice', {
       productId: product.id,
       ean: product.ean,

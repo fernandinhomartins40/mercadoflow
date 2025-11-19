@@ -3,8 +3,10 @@ import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
-import { PrismaClient } from '@prisma/client';
 import { createServer } from 'http';
+
+// Import lib
+import { prisma } from '@/lib/prisma';
 
 // Import middleware
 import { errorHandler } from './middleware/errorHandler';
@@ -28,7 +30,6 @@ import { LoggerService } from './services/LoggerService';
 // Initialize services
 const config = new ConfigService();
 const logger = new LoggerService();
-const prisma = new PrismaClient();
 const redis = new RedisService();
 
 // Create Express app

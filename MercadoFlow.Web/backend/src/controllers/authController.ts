@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { z } from 'zod';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 import rateLimit from 'express-rate-limit';
 
 import {
@@ -24,7 +24,6 @@ import { RedisService } from '../services/RedisService';
 import { authMiddleware, AuthRequest } from '../middleware/authMiddleware';
 
 const router = Router();
-const prisma = new PrismaClient();
 const config = new ConfigService();
 const logger = new LoggerService();
 const redis = new RedisService();
@@ -456,13 +455,14 @@ router.post('/logout', authMiddleware, async (req: AuthRequest, res: Response) =
     const token = authHeader?.substring(7); // Remove 'Bearer '
 
     if (token) {
-      // Add token to blacklist
+      // Add token to blacklist with individual expiration
       const decoded = jwt.decode(token) as any;
       const expiresIn = decoded.exp - Math.floor(Date.now() / 1000);
 
       if (expiresIn > 0) {
-        await redis.sadd('blacklisted_tokens', token);
-        await redis.expire(`blacklisted_tokens`, expiresIn);
+        // Store token with its own expiration (Redis string with TTL)
+        const tokenKey = `blacklist:token:${token}`;
+        await redis.set(tokenKey, '1', expiresIn);
       }
     }
 
@@ -495,6 +495,74 @@ router.post('/logout', authMiddleware, async (req: AuthRequest, res: Response) =
  * Get current user profile
  */
 router.get('/profile', authMiddleware, async (req: AuthRequest, res: Response) => {
+  try {
+    const user = req.user!;
+
+    // Get fresh user data
+    const userData = await prisma.user.findUnique({
+      where: { id: user.id },
+      include: {
+        market: {
+          select: {
+            id: true,
+            name: true,
+            city: true,
+            state: true,
+            planType: true
+          }
+        },
+        industry: {
+          select: {
+            id: true,
+            name: true,
+            segment: true
+          }
+        }
+      }
+    });
+
+    if (!userData) {
+      throw new NotFoundError('User not found');
+    }
+
+    const response: ApiResponse<UserInfo & { market?: any; industry?: any }> = {
+      success: true,
+      data: {
+        ...createUserInfo(userData),
+        market: userData.market,
+        industry: userData.industry
+      }
+    };
+
+    res.json(response);
+
+  } catch (error) {
+    if (error instanceof NotFoundError) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          code: 'NOT_FOUND',
+          message: error.message
+        }
+      });
+    }
+
+    logger.error('Profile fetch error', { error, userId: req.user?.id });
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'INTERNAL_ERROR',
+        message: 'Failed to fetch profile'
+      }
+    });
+  }
+});
+
+/**
+ * GET /api/v1/auth/me
+ * Get current user profile (alias for /profile)
+ */
+router.get('/me', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const user = req.user!;
 

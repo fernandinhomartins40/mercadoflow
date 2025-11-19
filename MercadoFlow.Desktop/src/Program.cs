@@ -121,9 +121,7 @@ public static class Program
 
                 // ViewModels
                 services.AddTransient<MainWindowViewModel>();
-                services.AddTransient<ConfigurationViewModel>();
-                services.AddTransient<LogViewerViewModel>();
-                services.AddTransient<StatusViewModel>();
+                // Note: ConfigurationWindow and LogViewerWindow use code-behind pattern
             });
     }
 
