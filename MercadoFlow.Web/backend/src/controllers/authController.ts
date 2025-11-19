@@ -559,6 +559,74 @@ router.get('/profile', authMiddleware, async (req: AuthRequest, res: Response) =
 });
 
 /**
+ * GET /api/v1/auth/me
+ * Get current user profile (alias for /profile)
+ */
+router.get('/me', authMiddleware, async (req: AuthRequest, res: Response) => {
+  try {
+    const user = req.user!;
+
+    // Get fresh user data
+    const userData = await prisma.user.findUnique({
+      where: { id: user.id },
+      include: {
+        market: {
+          select: {
+            id: true,
+            name: true,
+            city: true,
+            state: true,
+            planType: true
+          }
+        },
+        industry: {
+          select: {
+            id: true,
+            name: true,
+            segment: true
+          }
+        }
+      }
+    });
+
+    if (!userData) {
+      throw new NotFoundError('User not found');
+    }
+
+    const response: ApiResponse<UserInfo & { market?: any; industry?: any }> = {
+      success: true,
+      data: {
+        ...createUserInfo(userData),
+        market: userData.market,
+        industry: userData.industry
+      }
+    };
+
+    res.json(response);
+
+  } catch (error) {
+    if (error instanceof NotFoundError) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          code: 'NOT_FOUND',
+          message: error.message
+        }
+      });
+    }
+
+    logger.error('Profile fetch error', { error, userId: req.user?.id });
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'INTERNAL_ERROR',
+        message: 'Failed to fetch profile'
+      }
+    });
+  }
+});
+
+/**
  * PUT /api/v1/auth/change-password
  * Change user password
  */
