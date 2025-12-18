@@ -23,6 +23,7 @@ RUN npm install --legacy-peer-deps && npm cache clean --force
 COPY public/ ./public/
 COPY src/ ./src/
 COPY tsconfig.json ./
+COPY tsconfig.node.json ./
 COPY vite.config.ts ./
 COPY tailwind.config.js ./
 COPY postcss.config.js ./
