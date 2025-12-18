@@ -21,12 +21,15 @@ import { ValidationError, UnauthorizedError, ConflictError, NotFoundError } from
 import { ConfigService } from '../services/ConfigService';
 import { LoggerService } from '../services/LoggerService';
 import { RedisService } from '../services/RedisService';
+import { EmailService } from '../services/EmailService';
 import { authMiddleware, AuthRequest } from '../middleware/authMiddleware';
+import crypto from 'crypto';
 
 const router = Router();
 const config = new ConfigService();
 const logger = new LoggerService();
 const redis = new RedisService();
+const emailService = new EmailService();
 
 // Rate limiting for authentication endpoints
 const authRateLimit = rateLimit({
@@ -485,6 +488,135 @@ router.post('/logout', authMiddleware, async (req: AuthRequest, res: Response) =
       error: {
         code: 'INTERNAL_ERROR',
         message: 'Logout failed'
+      }
+    });
+  }
+});
+
+/**
+ * POST /api/v1/auth/reset-password
+ * Request password reset (email token)
+ */
+router.post('/reset-password', generalRateLimit, async (req: Request, res: Response) => {
+  try {
+    const validatedData = resetPasswordSchema.parse(req.body);
+    const { email } = validatedData;
+
+    const user = await prisma.user.findUnique({
+      where: { email: email.toLowerCase() }
+    });
+
+    if (user) {
+      const resetToken = crypto.randomBytes(48).toString('hex');
+      const ttlSeconds = 60 * 60; // 1 hour
+      await redis.set(`reset_token:${resetToken}`, user.id, ttlSeconds);
+      await emailService.sendPasswordResetEmail(user.email, resetToken);
+
+      logger.events.passwordResetRequested(user.id, user.email);
+    } else {
+      logger.security('Password reset requested for non-existent email', {
+        email,
+        ip: req.ip
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'If the email exists, a reset link was sent'
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Validation failed',
+          details: error.errors
+        }
+      });
+    }
+
+    logger.error('Reset password request error', { error, email: req.body.email });
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'INTERNAL_ERROR',
+        message: 'Reset password request failed'
+      }
+    });
+  }
+});
+
+/**
+ * POST /api/v1/auth/reset-password/confirm
+ * Confirm password reset with token
+ */
+router.post('/reset-password/confirm', generalRateLimit, async (req: Request, res: Response) => {
+  try {
+    const validatedData = resetPasswordConfirmSchema.parse(req.body);
+    const { token, newPassword } = validatedData;
+
+    const userId = await redis.get(`reset_token:${token}`);
+    if (!userId) {
+      throw new UnauthorizedError('Invalid or expired reset token');
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundError('User not found');
+    }
+
+    const hashedNewPassword = await hashPassword(newPassword);
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        password: hashedNewPassword,
+        updatedAt: new Date()
+      }
+    });
+
+    await redis.del(`reset_token:${token}`);
+    await redis.del(`refresh_token:${user.id}`);
+
+    logger.business('Password reset confirmed', {
+      userId: user.id,
+      email: user.email,
+      ip: req.ip
+    });
+
+    res.json({
+      success: true,
+      message: 'Password has been reset successfully'
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Validation failed',
+          details: error.errors
+        }
+      });
+    }
+
+    if (error instanceof UnauthorizedError || error instanceof NotFoundError) {
+      return res.status(error.statusCode).json({
+        success: false,
+        error: {
+          code: error.code,
+          message: error.message
+        }
+      });
+    }
+
+    logger.error('Reset password confirm error', { error });
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'INTERNAL_ERROR',
+        message: 'Reset password failed'
       }
     });
   }

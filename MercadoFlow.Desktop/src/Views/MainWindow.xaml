@@ -123,7 +123,7 @@
                     </Border>
                 </StackPanel>
 
-                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
                     <Button Content="Configurações"
                             Style="{StaticResource SecondaryButtonStyle}"
                             Command="{Binding OpenConfigurationCommand}"
@@ -186,7 +186,7 @@
                         </StackPanel>
 
                         <!-- Control Buttons -->
-                        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
+                        <StackPanel Grid.Column="2" Orientation="Horizontal">
                             <Button Content="Iniciar"
                                     Style="{StaticResource PrimaryButtonStyle}"
                                     Command="{Binding StartCommand}"

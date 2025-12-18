@@ -233,6 +233,15 @@ export class LoggerService implements ILogger {
       });
     },
 
+    passwordResetRequested: (userId: string, email: string) => {
+      this.security('Password reset requested', {
+        event: 'password_reset_requested',
+        userId,
+        email,
+        timestamp: new Date().toISOString()
+      });
+    },
+
     invoiceProcessed: (invoiceId: string, marketId: string, chaveNFe: string) => {
       this.business('Invoice processed', {
         event: 'invoice_processed',

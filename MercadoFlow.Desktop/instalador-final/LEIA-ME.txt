@@ -1,0 +1,28 @@
+﻿INSTALADOR MERCADOFLOW DESKTOP v1.0.0
+======================================
+
+COMO INSTALAR:
+1. Clique com botao direito em INSTALAR.bat
+2. Selecione "Executar como administrador"
+3. Aguarde a instalacao completa
+
+REQUISITOS:
+- Windows 10/11 (64-bit)
+- Privilegios de administrador
+- 150 MB de espaco em disco
+
+LOCALIZACAO APOS INSTALACAO:
+C:\Program Files\MercadoFlow\
+
+COMO USAR:
+1. Apos instalar, o atalho estara na Area de Trabalho
+2. Configure as pastas de monitoramento na aplicacao
+3. A aplicacao coletara automaticamente as notas fiscais XML
+
+DESINSTALAR:
+Execute como administrador:
+C:\Program Files\MercadoFlow\Desinstalar.bat
+
+SUPORTE:
+Email: suporte@mercadoflow.com
+Site: https://mercadoflow.com

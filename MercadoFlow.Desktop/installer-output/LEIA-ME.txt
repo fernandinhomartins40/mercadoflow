@@ -1,0 +1,30 @@
+========================================
+  MercadoFlow Desktop Collector v1.0.0
+========================================
+
+INSTALACAO:
+-----------
+1. Copie a pasta 'files' para: C:\Program Files\MercadoFlow\
+2. Crie atalhos conforme necessario
+3. Execute MercadoFlow.Desktop.exe
+
+REQUISITOS:
+-----------
+- Windows 10/11 (64-bit)
+- .NET 8 Runtime (incluido)
+- 500MB espaco em disco
+
+LOCALIZACAO:
+------------
+Apos instalacao, o programa estara em:
+C:\Program Files\MercadoFlow\
+
+SUPORTE:
+--------
+Email: suporte@mercadoflow.com
+Site: https://mercadoflow.com
+
+========================================
+Copyright (c) 2024 MercadoFlow
+Todos os direitos reservados.
+========================================

@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using NLog.Extensions.Logging;
 using MercadoFlow.Desktop.Configuration;
 using MercadoFlow.Desktop.Services;
+using MercadoFlow.Desktop.Parsers;
 using MercadoFlow.Desktop.Data;
 using MercadoFlow.Desktop.ViewModels;
 using Microsoft.EntityFrameworkCore;
@@ -103,18 +104,18 @@ public static class Program
                     options.UseSqlite(connectionString);
                 });
 
-                // HttpClient
-                services.AddHttpClient<IApiService, ApiService>();
-
                 // Serviços principais
                 services.AddSingleton<IConfigurationService, ConfigurationService>();
                 services.AddSingleton<IEncryptionService, EncryptionService>();
                 services.AddSingleton<IFileMonitoringService, FileMonitoringService>();
                 services.AddSingleton<IXmlParserService, XmlParserService>();
                 services.AddSingleton<IQueueService, QueueService>();
-                services.AddSingleton<IApiService, ApiService>();
                 services.AddSingleton<IHealthCheckService, HealthCheckService>();
                 services.AddSingleton<IAutoUpdaterService, AutoUpdaterService>();
+
+                // HttpClient com ApiService
+                services.AddHttpClient<ApiService>();
+                services.AddSingleton<IApiService, ApiService>();
 
                 // Serviço principal orquestrador
                 services.AddHostedService<FileProcessingService>();
@@ -149,7 +150,8 @@ public static class Program
     {
         using var scope = host.Services.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<MercadoFlowContext>();
-        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+        var loggerFactory = scope.ServiceProvider.GetRequiredService<ILoggerFactory>();
+        var logger = loggerFactory.CreateLogger("Program");
 
         try
         {

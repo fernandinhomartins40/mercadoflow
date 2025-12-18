@@ -5,6 +5,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Input;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -36,20 +37,42 @@ public class MainWindowViewModel : INotifyPropertyChanged
         _serviceProvider = serviceProvider;
         _logger = logger;
 
-        // Commands
-        StartCommand = new RelayCommand(async () => await StartServiceAsync(), () => IsStartButtonEnabled);
-        StopCommand = new RelayCommand(async () => await StopServiceAsync(), () => IsStopButtonEnabled);
-        TestConnectionCommand = new RelayCommand(async () => await TestConnectionAsync());
-        RefreshCommand = new RelayCommand(async () => await RefreshDataAsync());
-        OpenConfigurationCommand = new RelayCommand(OpenConfiguration);
-        OpenLogsCommand = new RelayCommand(OpenLogs);
+        _logger.LogInformation("=== MainWindowViewModel Constructor ===");
+        _logger.LogInformation("ServiceProvider: {ServiceProvider}", _serviceProvider != null ? "OK" : "NULL");
 
-        // Collections
-        RecentFiles = new ObservableCollection<ProcessedFileViewModel>();
-        Alerts = new ObservableCollection<AlertViewModel>();
-        QueueItems = new ObservableCollection<QueueItemViewModel>();
+        try
+        {
+            // Commands
+            _logger.LogInformation("Criando comandos...");
+            StartCommand = new AsyncRelayCommand(StartServiceAsync, () => IsStartButtonEnabled);
+            _logger.LogInformation("StartCommand criado");
+            StopCommand = new AsyncRelayCommand(StopServiceAsync, () => IsStopButtonEnabled);
+            _logger.LogInformation("StopCommand criado");
+            TestConnectionCommand = new AsyncRelayCommand(TestConnectionAsync);
+            _logger.LogInformation("TestConnectionCommand criado");
+            RefreshCommand = new AsyncRelayCommand(RefreshDataAsync);
+            _logger.LogInformation("RefreshCommand criado");
+            OpenConfigurationCommand = new RelayCommand(OpenConfiguration);
+            _logger.LogInformation("OpenConfigurationCommand criado");
+            OpenLogsCommand = new RelayCommand(OpenLogs);
+            _logger.LogInformation("OpenLogsCommand criado");
 
-        InitializeAsync();
+            // Collections
+            _logger.LogInformation("Criando coleções...");
+            RecentFiles = new ObservableCollection<ProcessedFileViewModel>();
+            Alerts = new ObservableCollection<AlertViewModel>();
+            QueueItems = new ObservableCollection<QueueItemViewModel>();
+            _logger.LogInformation("Coleções criadas");
+
+            _logger.LogInformation("Chamando InitializeAsync...");
+            InitializeAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "ERRO CRÍTICO no construtor do MainWindowViewModel");
+            MessageBox.Show($"Erro ao inicializar interface: {ex.Message}\n\nStack: {ex.StackTrace}", "Erro Crítico", MessageBoxButton.OK, MessageBoxImage.Error);
+            throw;
+        }
     }
 
     #region Properties
@@ -208,11 +231,10 @@ public class MainWindowViewModel : INotifyPropertyChanged
     {
         try
         {
-            using var scope = _serviceProvider.CreateScope();
-
-            _fileMonitoringService = scope.ServiceProvider.GetService<IFileMonitoringService>();
-            _queueService = scope.ServiceProvider.GetService<IQueueService>();
-            _apiService = scope.ServiceProvider.GetService<IApiService>();
+            // Não usar using aqui porque precisamos manter os serviços vivos
+            _fileMonitoringService = _serviceProvider.GetService<IFileMonitoringService>();
+            _queueService = _serviceProvider.GetService<IQueueService>();
+            _apiService = _serviceProvider.GetService<IApiService>();
 
             if (_fileMonitoringService != null)
             {
@@ -233,23 +255,53 @@ public class MainWindowViewModel : INotifyPropertyChanged
         {
             _logger.LogError(ex, "Erro ao inicializar MainWindowViewModel");
             StatusMessage = $"Erro na inicialização: {ex.Message}";
+            AddAlert(AlertType.Error, "Erro de Inicialização", ex.Message);
         }
+    }
+
+    private void AddAlert(AlertType type, string title, string message)
+    {
+        App.Current?.Dispatcher.Invoke(() =>
+        {
+            Alerts.Insert(0, new AlertViewModel
+            {
+                Type = type,
+                Title = title,
+                Message = message,
+                Timestamp = DateTime.Now
+            });
+
+            // Manter apenas os últimos 10 alertas
+            while (Alerts.Count > 10)
+            {
+                Alerts.RemoveAt(Alerts.Count - 1);
+            }
+        });
     }
 
     private async Task StartServiceAsync()
     {
         try
         {
+            _logger.LogInformation("Iniciando serviços de monitoramento...");
             StatusMessage = "Iniciando serviços...";
             ServiceStatus = ServiceStatus.Starting;
 
             if (_fileMonitoringService != null)
             {
+                _logger.LogInformation("Chamando StartMonitoringAsync...");
                 await _fileMonitoringService.StartMonitoringAsync();
+                _logger.LogInformation("StartMonitoringAsync concluído");
+            }
+            else
+            {
+                _logger.LogWarning("FileMonitoringService é null!");
+                AddAlert(AlertType.Warning, "Serviço não disponível", "O serviço de monitoramento não está disponível");
             }
 
             StatusMessage = "Serviços iniciados com sucesso";
             ServiceStatus = ServiceStatus.Running;
+            AddAlert(AlertType.Success, "Serviços Iniciados", "Monitoramento de arquivos iniciado com sucesso");
 
             _logger.LogInformation("Serviços iniciados pelo usuário");
         }
@@ -258,6 +310,7 @@ public class MainWindowViewModel : INotifyPropertyChanged
             ServiceStatus = ServiceStatus.Error;
             StatusMessage = $"Erro ao iniciar serviços: {ex.Message}";
             _logger.LogError(ex, "Erro ao iniciar serviços");
+            AddAlert(AlertType.Error, "Erro ao Iniciar", ex.Message);
         }
     }
 
@@ -265,6 +318,7 @@ public class MainWindowViewModel : INotifyPropertyChanged
     {
         try
         {
+            _logger.LogInformation("Parando serviços de monitoramento...");
             StatusMessage = "Parando serviços...";
             ServiceStatus = ServiceStatus.Stopping;
 
@@ -275,6 +329,7 @@ public class MainWindowViewModel : INotifyPropertyChanged
 
             StatusMessage = "Serviços parados";
             ServiceStatus = ServiceStatus.Stopped;
+            AddAlert(AlertType.Information, "Serviços Parados", "Monitoramento de arquivos foi interrompido");
 
             _logger.LogInformation("Serviços parados pelo usuário");
         }
@@ -283,6 +338,7 @@ public class MainWindowViewModel : INotifyPropertyChanged
             ServiceStatus = ServiceStatus.Error;
             StatusMessage = $"Erro ao parar serviços: {ex.Message}";
             _logger.LogError(ex, "Erro ao parar serviços");
+            AddAlert(AlertType.Error, "Erro ao Parar", ex.Message);
         }
     }
 
@@ -290,22 +346,34 @@ public class MainWindowViewModel : INotifyPropertyChanged
     {
         try
         {
+            _logger.LogInformation("Testando conexão com API...");
             StatusMessage = "Testando conexão com API...";
 
             if (_apiService != null)
             {
                 var isConnected = await _apiService.TestConnectionAsync();
-                StatusMessage = isConnected ? "Conexão com API bem-sucedida" : "Falha na conexão com API";
+                if (isConnected)
+                {
+                    StatusMessage = "Conexão com API bem-sucedida";
+                    AddAlert(AlertType.Success, "Conexão OK", "Conexão com API estabelecida com sucesso");
+                }
+                else
+                {
+                    StatusMessage = "Falha na conexão com API";
+                    AddAlert(AlertType.Error, "Conexão Falhou", "Não foi possível conectar com a API. Verifique as configurações.");
+                }
             }
             else
             {
                 StatusMessage = "Serviço de API não disponível";
+                AddAlert(AlertType.Warning, "API não disponível", "O serviço de API não foi inicializado");
             }
         }
         catch (Exception ex)
         {
             StatusMessage = $"Erro ao testar conexão: {ex.Message}";
             _logger.LogError(ex, "Erro ao testar conexão");
+            AddAlert(AlertType.Error, "Erro de Conexão", ex.Message);
         }
     }
 
@@ -316,7 +384,8 @@ public class MainWindowViewModel : INotifyPropertyChanged
             // Atualizar estatísticas
             if (_fileMonitoringService != null)
             {
-                Statistics = _fileMonitoringService.GetStatistics();
+                var monitoringStats = _fileMonitoringService.GetStatistics();
+                Statistics = ConvertToProcessingStatistics(monitoringStats);
             }
 
             if (_queueService != null)
@@ -446,6 +515,16 @@ public class MainWindowViewModel : INotifyPropertyChanged
         IsStopButtonEnabled = ServiceStatus is ServiceStatus.Running or ServiceStatus.Starting;
     }
 
+    private ProcessingStatistics ConvertToProcessingStatistics(Services.MonitoringStatistics monitoringStats)
+    {
+        return new ProcessingStatistics
+        {
+            FilesProcessed = monitoringStats.FilesProcessedToday,
+            FilesSuccessful = monitoringStats.FilesProcessedToday - monitoringStats.FilesErrorToday,
+            FilesError = monitoringStats.FilesErrorToday
+        };
+    }
+
     #endregion
 
     #region INotifyPropertyChanged
@@ -556,5 +635,49 @@ public class RelayCommand : ICommand
     public void Execute(object? parameter)
     {
         _execute();
+    }
+}
+
+// AsyncRelayCommand implementation
+public class AsyncRelayCommand : ICommand
+{
+    private readonly Func<Task> _execute;
+    private readonly Func<bool>? _canExecute;
+    private bool _isExecuting;
+
+    public AsyncRelayCommand(Func<Task> execute, Func<bool>? canExecute = null)
+    {
+        _execute = execute ?? throw new ArgumentNullException(nameof(execute));
+        _canExecute = canExecute;
+    }
+
+    public event EventHandler? CanExecuteChanged
+    {
+        add { CommandManager.RequerySuggested += value; }
+        remove { CommandManager.RequerySuggested -= value; }
+    }
+
+    public bool CanExecute(object? parameter)
+    {
+        return !_isExecuting && (_canExecute?.Invoke() ?? true);
+    }
+
+    public async void Execute(object? parameter)
+    {
+        if (_isExecuting)
+            return;
+
+        _isExecuting = true;
+        CommandManager.InvalidateRequerySuggested();
+
+        try
+        {
+            await _execute();
+        }
+        finally
+        {
+            _isExecuting = false;
+            CommandManager.InvalidateRequerySuggested();
+        }
     }
 }

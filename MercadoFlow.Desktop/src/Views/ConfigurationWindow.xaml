@@ -49,7 +49,7 @@
                                              Height="120"
                                              Margin="0,0,8,0"/>
 
-                                    <StackPanel Grid.Column="1" Spacing="8">
+                                    <StackPanel Grid.Column="1">
                                         <Button Content="Adicionar"
                                                 Style="{StaticResource PrimaryButtonStyle}"
                                                 Click="AddFolder_Click"
@@ -285,7 +285,7 @@
                 Padding="16">
             <StackPanel Orientation="Horizontal"
                         HorizontalAlignment="Right"
-                        Spacing="8">
+                       >
                 <Button Content="Salvar"
                         Style="{StaticResource PrimaryButtonStyle}"
                         Click="Save_Click"

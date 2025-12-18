@@ -1,0 +1,17 @@
+LICENÇA DE USO - MERCADOFLOW DESKTOP COLLECTOR
+
+Copyright (c) 2024 MercadoFlow. Todos os direitos reservados.
+
+Este software é fornecido "como está", sem garantias de qualquer tipo,
+expressas ou implícitas, incluindo, mas não se limitando a garantias
+de comercialização, adequação a um propósito específico e não violação.
+
+TERMOS DE USO:
+1. Este software é proprietário e protegido por direitos autorais.
+2. Você pode instalar e usar este software em um único computador.
+3. É proibida a redistribuição, modificação ou engenharia reversa.
+4. O uso comercial requer licença comercial.
+
+Para mais informações ou suporte, entre em contato:
+Email: suporte@mercadoflow.com
+Site: https://mercadoflow.com

@@ -9,7 +9,21 @@
       "Bash(npm install:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(npx prisma generate)",
+      "Bash(npx prisma migrate deploy)",
+      "Bash(npm run prisma:seed:*)",
+      "Bash(npm run dev:*)",
+      "Bash(curl:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(dotnet:*)",
+      "Bash(powershell.exe -ExecutionPolicy Bypass -File fix-errors.ps1)",
+      "Bash(powershell.exe -ExecutionPolicy Bypass -File build-installer.ps1)",
+      "Bash(powershell.exe:*)",
+      "Bash(powershell -Command:*)",
+      "Bash(cmd.exe /c BUILD-INSTALLER-FINAL.bat)",
+      "Bash(test:*)"
     ],
     "deny": [],
     "ask": []

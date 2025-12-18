@@ -23,7 +23,7 @@ export class EmailService implements IEmailService {
     // Only enable if SMTP credentials are provided
     if (smtpHost && smtpUser && smtpPass) {
       try {
-        this.transporter = nodemailer.createTransporter({
+        this.transporter = nodemailer.createTransport({
           host: smtpHost,
           port: Number(smtpPort),
           secure: Number(smtpPort) === 465,

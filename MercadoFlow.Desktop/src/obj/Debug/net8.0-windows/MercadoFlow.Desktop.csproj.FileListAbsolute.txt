@@ -1,0 +1,16 @@
+C:\Projestos Claude Code\mercadoflow\MercadoFlow.Desktop\src\obj\Debug\net8.0-windows\MercadoFlow.Desktop.csproj.AssemblyReference.cache
+C:\Projestos Claude Code\mercadoflow\MercadoFlow.Desktop\src\obj\Debug\net8.0-windows\Views\LogViewerWindow.baml
+C:\Projestos Claude Code\mercadoflow\MercadoFlow.Desktop\src\obj\Debug\net8.0-windows\App.baml
+C:\Projestos Claude Code\mercadoflow\MercadoFlow.Desktop\src\obj\Debug\net8.0-windows\Views\LogViewerWindow.g.cs
+C:\Projestos Claude Code\mercadoflow\MercadoFlow.Desktop\src\obj\Debug\net8.0-windows\App.g.cs
+C:\Projestos Claude Code\mercadoflow\MercadoFlow.Desktop\src\obj\Debug\net8.0-windows\MercadoFlow.Desktop_MarkupCompile.cache
+C:\Projestos Claude Code\mercadoflow\MercadoFlow.Desktop\src\obj\Debug\net8.0-windows\Views\ConfigurationWindow.baml
+C:\Projestos Claude Code\mercadoflow\MercadoFlow.Desktop\src\obj\Debug\net8.0-windows\Views\MainWindow.baml
+C:\Projestos Claude Code\mercadoflow\MercadoFlow.Desktop\src\obj\Debug\net8.0-windows\Views\ConfigurationWindow.g.cs
+C:\Projestos Claude Code\mercadoflow\MercadoFlow.Desktop\src\obj\Debug\net8.0-windows\Views\MainWindow.g.cs
+C:\Projestos Claude Code\mercadoflow\MercadoFlow.Desktop\src\obj\Debug\net8.0-windows\MercadoFlow.Desktop.g.resources
+C:\Projestos Claude Code\mercadoflow\MercadoFlow.Desktop\src\obj\Debug\net8.0-windows\MercadoFlow.Desktop.GeneratedMSBuildEditorConfig.editorconfig
+C:\Projestos Claude Code\mercadoflow\MercadoFlow.Desktop\src\obj\Debug\net8.0-windows\MercadoFlow.Desktop.AssemblyInfoInputs.cache
+C:\Projestos Claude Code\mercadoflow\MercadoFlow.Desktop\src\obj\Debug\net8.0-windows\MercadoFlow.Desktop.AssemblyInfo.cs
+C:\Projestos Claude Code\mercadoflow\MercadoFlow.Desktop\src\obj\Debug\net8.0-windows\MercadoFlow.Desktop.csproj.CoreCompileInputs.cache
+C:\Projestos Claude Code\mercadoflow\MercadoFlow.Desktop\src\obj\Debug\net8.0-windows\MercadoFlow.Desktop.sourcelink.json

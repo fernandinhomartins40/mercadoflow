@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -118,11 +119,11 @@ public class HealthCheckService : IHealthCheckService
             // Informações do sistema
             diagnostics["Timestamp"] = health.Timestamp;
             diagnostics["Version"] = health.Version;
-            diagnostics["MachineName"] = Environment.MachineName;
-            diagnostics["UserName"] = Environment.UserName;
-            diagnostics["OSVersion"] = Environment.OSVersion.ToString();
-            diagnostics["ProcessorCount"] = Environment.ProcessorCount;
-            diagnostics["WorkingDirectory"] = Environment.CurrentDirectory;
+            diagnostics["MachineName"] = System.Environment.MachineName;
+            diagnostics["UserName"] = System.Environment.UserName;
+            diagnostics["OSVersion"] = System.Environment.OSVersion.ToString();
+            diagnostics["ProcessorCount"] = System.Environment.ProcessorCount;
+            diagnostics["WorkingDirectory"] = System.Environment.CurrentDirectory;
 
             // Status dos serviços
             diagnostics["ServiceStatus"] = health.ServiceStatus.ToString();
@@ -257,7 +258,7 @@ public class HealthCheckService : IHealthCheckService
             var realTime = DateTime.UtcNow - process.StartTime;
             if (realTime.TotalMilliseconds > 0)
             {
-                health.CpuUsage = (totalProcessorTime.TotalMilliseconds / realTime.TotalMilliseconds / Environment.ProcessorCount) * 100;
+                health.CpuUsage = (totalProcessorTime.TotalMilliseconds / realTime.TotalMilliseconds / System.Environment.ProcessorCount) * 100;
             }
 
             // Conexões ativas (estimativa baseada em threads)
@@ -276,7 +277,7 @@ public class HealthCheckService : IHealthCheckService
     {
         try
         {
-            var currentDrive = Path.GetPathRoot(Environment.CurrentDirectory);
+            var currentDrive = Path.GetPathRoot(System.Environment.CurrentDirectory);
             if (!string.IsNullOrEmpty(currentDrive))
             {
                 var driveInfo = new DriveInfo(currentDrive);

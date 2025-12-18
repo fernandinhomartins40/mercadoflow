@@ -1,4 +1,7 @@
 using System;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using MercadoFlow.Desktop.Models;
@@ -43,7 +46,7 @@ public class MercadoFlowContext : DbContext
         if (_logger != null)
         {
             optionsBuilder.LogTo(message => _logger.LogDebug("{DbMessage}", message),
-                LogLevel.Information);
+                Microsoft.Extensions.Logging.LogLevel.Information);
         }
     }
 
@@ -508,7 +511,7 @@ public class ProcessedFile
 public class ErrorLog
 {
     public string Id { get; set; } = Guid.NewGuid().ToString();
-    public LogLevel Level { get; set; }
+    public Models.LogLevel Level { get; set; }
     public string Message { get; set; } = string.Empty;
     public string? Exception { get; set; }
     public string? Source { get; set; }

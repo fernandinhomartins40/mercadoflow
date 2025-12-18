@@ -65,7 +65,7 @@ export const authService = {
 
   // Change Password
   async changePassword(data: ChangePasswordRequest): Promise<void> {
-    await api.post('/api/v1/auth/change-password', data);
+    await api.put('/api/v1/auth/change-password', data);
   },
 
   // Request Password Reset

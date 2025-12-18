@@ -518,13 +518,13 @@ public class FileProcessingService : BackgroundService
 
             var errorLog = new ErrorLog
             {
-                Level = LogLevel.Error,
+                Level = Models.LogLevel.Error,
                 Message = ex.Message,
                 Exception = ex.ToString(),
                 Source = nameof(FileProcessingService),
                 Category = "FileProcessing",
                 FilePath = filePath,
-                MachineName = Environment.MachineName
+                MachineName = System.Environment.MachineName
             };
 
             context.ErrorLogs.Add(errorLog);

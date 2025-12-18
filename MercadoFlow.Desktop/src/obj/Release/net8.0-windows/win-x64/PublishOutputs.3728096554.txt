@@ -1,0 +1,4 @@
+C:\Projestos Claude Code\mercadoflow\MercadoFlow.Desktop\installer-exe\MercadoFlow.Desktop.pdb
+C:\Projestos Claude Code\mercadoflow\MercadoFlow.Desktop\installer-exe\appsettings.json
+C:\Projestos Claude Code\mercadoflow\MercadoFlow.Desktop\installer-exe\NLog.config
+C:\Projestos Claude Code\mercadoflow\MercadoFlow.Desktop\installer-exe\MercadoFlow.Desktop.exe

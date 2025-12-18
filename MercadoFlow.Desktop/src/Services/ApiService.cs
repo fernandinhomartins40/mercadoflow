@@ -418,7 +418,7 @@ public class ApiService : IApiService, IDisposable
 
     private HttpContent CreateHttpContent(string json)
     {
-        var content = new StringContent(json, Encoding.UTF8, "application/json");
+        HttpContent content = new StringContent(json, Encoding.UTF8, "application/json");
 
         if (_apiSettings.EnableCompression)
         {
@@ -426,9 +426,10 @@ public class ApiService : IApiService, IDisposable
             if (json.Length > 1024) // Apenas comprimir se > 1KB
             {
                 var compressedBytes = CompressString(json);
-                content = new ByteArrayContent(compressedBytes);
-                content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
-                content.Headers.ContentEncoding.Add("gzip");
+                var compressedContent = new ByteArrayContent(compressedBytes);
+                compressedContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
+                compressedContent.Headers.ContentEncoding.Add("gzip");
+                content = compressedContent;
             }
         }
 

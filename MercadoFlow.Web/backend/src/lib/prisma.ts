@@ -38,26 +38,34 @@ const prismaClientSingleton = () => {
   // Log queries in development
   if (process.env.NODE_ENV === 'development') {
     client.$on('query', (e: any) => {
-      logger.database(`Query: ${e.query}`, {
-        duration: e.duration,
-        params: e.params,
-      });
+      if (logger && typeof logger.database === 'function') {
+        logger.database(`Query: ${e.query}`, {
+          duration: e.duration,
+          params: e.params,
+        });
+      }
     });
   }
 
   // Log errors
   client.$on('error', (e: any) => {
-    logger.error('Prisma Error', { error: e });
+    if (logger && typeof logger.error === 'function') {
+      logger.error('Prisma Error', { error: e });
+    }
   });
 
   // Log warnings
   client.$on('warn', (e: any) => {
-    logger.warn('Prisma Warning', { message: e.message });
+    if (logger && typeof logger.warn === 'function') {
+      logger.warn('Prisma Warning', { message: e.message });
+    }
   });
 
   // Log info
   client.$on('info', (e: any) => {
-    logger.info('Prisma Info', { message: e.message });
+    if (logger && typeof logger.info === 'function') {
+      logger.info('Prisma Info', { message: e.message });
+    }
   });
 
   return client;

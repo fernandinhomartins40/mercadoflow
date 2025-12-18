@@ -1,0 +1,17 @@
+INSTALADOR MERCADOFLOW DESKTOP v1.0.0
+
+COMO INSTALAR:
+1. Clique com botao direito em INSTALAR.bat
+2. Selecione "Executar como administrador"
+3. Aguarde a instalacao
+
+REQUISITOS:
+- Windows 10/11 (64-bit)
+- Privilegios de administrador
+
+LOCALIZACAO APOS INSTALACAO:
+C:\Program Files\MercadoFlow\
+
+DESINSTALAR:
+Execute: C:\Program Files\MercadoFlow\uninstall.bat
+(como administrador)

@@ -1,0 +1,463 @@
+name: Deploy MercadoFlow Web to VPS
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'MercadoFlow.Web/**'
+      - '.github/workflows/deploy-mercadoflow-web.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-mercadoflow-web
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_PASSWORD }}" > ~/.ssh/vps_password
+          chmod 600 ~/.ssh/vps_password
+
+      - name: Sync code to VPS
+        run: |
+          # Instalar sshpass para autenticação com senha
+          sudo apt-get update && sudo apt-get install -y sshpass rsync
+
+          # Criar diretório no VPS
+          sshpass -f ~/.ssh/vps_password ssh -o StrictHostKeyChecking=no root@72.60.10.112 "mkdir -p /root/mercadoflow-web"
+
+          # Verificar estrutura do projeto antes do rsync
+          echo "=== Verificando estrutura localmente antes do rsync ==="
+          ls -la MercadoFlow.Web/
+          ls -la MercadoFlow.Web/backend/ || echo "Backend not found"
+          ls -la MercadoFlow.Web/frontend/ || echo "Frontend not found"
+
+          # Sincronizar código via rsync
+          sshpass -f ~/.ssh/vps_password rsync -avz --delete \
+            --exclude='.git' \
+            --exclude='node_modules' \
+            --exclude='dist' \
+            --exclude='build' \
+            --exclude='.next' \
+            --exclude='*.db' \
+            --exclude='*.db-*' \
+            --exclude='MercadoFlow.Web/backend/data' \
+            --exclude='MercadoFlow.Web/backend/logs' \
+            --exclude='MercadoFlow.Web/backend/uploads' \
+            --exclude='.env' \
+            --exclude='.env.local' \
+            -e "ssh -o StrictHostKeyChecking=no" \
+            ./MercadoFlow.Web/ root@72.60.10.112:/root/mercadoflow-web/
+
+          # Verificar se código foi copiado
+          echo "=== Verificando estrutura na VPS após rsync ==="
+          sshpass -f ~/.ssh/vps_password ssh -o StrictHostKeyChecking=no root@72.60.10.112 "ls -la /root/mercadoflow-web/"
+
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@master
+        with:
+          host: 72.60.10.112
+          username: root
+          password: ${{ secrets.VPS_PASSWORD }}
+          port: 22
+          timeout: 600s
+          command_timeout: 600s
+          script: |
+            set -e
+
+            echo "=== Iniciando Deploy MercadoFlow Web ==="
+
+            # Diretório da aplicação
+            APP_DIR="/root/mercadoflow-web"
+            cd $APP_DIR
+
+            # ===== PROTEÇÃO DE VOLUMES - VERIFICAÇÃO CRÍTICA =====
+            echo "=== Verificando volumes Docker antes de qualquer operação ==="
+
+            # Verificar se volumes de dados existem
+            BACKEND_VOLUME=$(docker volume ls -q | grep "mercadoflow_backend_data" || echo "")
+            REDIS_VOLUME=$(docker volume ls -q | grep "mercadoflow_redis_data" || echo "")
+
+            if [ -n "$BACKEND_VOLUME" ]; then
+              echo "✅ Volume backend_data encontrado: $BACKEND_VOLUME"
+            else
+              echo "ℹ️ Volume backend_data não existe (será criado no primeiro deploy)"
+            fi
+
+            if [ -n "$REDIS_VOLUME" ]; then
+              echo "✅ Volume redis_data encontrado: $REDIS_VOLUME"
+            else
+              echo "ℹ️ Volume redis_data não existe (será criado no primeiro deploy)"
+            fi
+
+            # Parar containers existentes (NUNCA usar -v que remove volumes!)
+            echo ""
+            echo "=== Parando containers (preservando volumes) ==="
+            docker-compose -f docker-compose.vps.yml down || true
+
+            # Verificação de segurança: garantir que volumes NÃO foram removidos
+            echo ""
+            echo "=== Verificação de segurança pós-parada ==="
+            BACKEND_VOLUME_AFTER=$(docker volume ls -q | grep "mercadoflow_backend_data" || echo "")
+
+            if [ -n "$BACKEND_VOLUME" ] && [ -z "$BACKEND_VOLUME_AFTER" ]; then
+              echo "❌ ERRO CRÍTICO: Volume backend_data foi removido inadvertidamente!"
+              exit 1
+            else
+              echo "✅ Volumes preservados com sucesso"
+            fi
+
+            echo "Verificando código sincronizado..."
+            ls -la
+
+            # Gerar JWT Secret se não existir
+            if [ ! -f ".jwt_secret" ]; then
+              echo "Gerando novo JWT Secret..."
+              openssl rand -hex 32 > .jwt_secret
+            fi
+            JWT_SECRET=$(cat .jwt_secret)
+
+            # Criar arquivo .env
+            echo "Criando arquivo .env..."
+            cat > .env << EOF
+            # Node.js
+            NODE_ENV=production
+
+            # Application
+            PORT=3001
+            FRONTEND_PORT=3000
+
+            # Database (SQLite)
+            DATABASE_URL=file:/app/data/mercadoflow.db
+
+            # Redis
+            REDIS_URL=redis://redis:6379
+
+            # JWT
+            JWT_SECRET=${JWT_SECRET}
+            JWT_EXPIRES_IN=7d
+
+            # Frontend
+            REACT_APP_API_BASE_URL=https://mercadoflow.com/api
+            REACT_APP_ENVIRONMENT=production
+
+            # CORS
+            CORS_ORIGIN=https://mercadoflow.com,https://www.mercadoflow.com
+
+            # Email (opcional - configure se necessário)
+            SMTP_HOST=${SMTP_HOST:-}
+            SMTP_PORT=${SMTP_PORT:-587}
+            SMTP_USER=${SMTP_USER:-}
+            SMTP_PASSWORD=${SMTP_PASSWORD:-}
+            SMTP_FROM=noreply@mercadoflow.com
+
+            # Container Limits
+            CONTAINER_MEMORY_LIMIT=2g
+            CONTAINER_CPU_LIMIT=2
+
+            # Build Timestamp
+            BUILD_TIMESTAMP=$(date +%s)
+            EOF
+
+            # Exportar BUILD_TIMESTAMP
+            export BUILD_TIMESTAMP=$(date +%s)
+            echo "BUILD_TIMESTAMP=${BUILD_TIMESTAMP}"
+
+            # ===== VALIDAÇÃO PRÉ-BUILD =====
+            echo "=== Validando estrutura do projeto antes do build ==="
+
+            if [ ! -f "backend/package.json" ]; then
+              echo "❌ ERRO: backend/package.json não encontrado!"
+              exit 1
+            fi
+            echo "✓ backend/package.json encontrado"
+
+            if [ ! -f "frontend/package.json" ]; then
+              echo "❌ ERRO: frontend/package.json não encontrado!"
+              exit 1
+            fi
+            echo "✓ frontend/package.json encontrado"
+
+            if [ ! -f "backend/prisma/schema.prisma" ]; then
+              echo "❌ ERRO: backend/prisma/schema.prisma não encontrado!"
+              exit 1
+            fi
+            echo "✓ Prisma schema encontrado"
+
+            echo "=== Todos os arquivos críticos validados ==="
+
+            # ===== LIMPEZA SEGURA (SEM TOCAR EM VOLUMES) =====
+            echo "=== Limpando recursos antigos (containers e imagens apenas) ==="
+
+            # Verificar volumes antes da limpeza
+            VOLUMES_BEFORE=$(docker volume ls -q | grep -E "mercadoflow_backend_data|mercadoflow_redis_data" | wc -l)
+            echo "📊 Volumes de dados antes da limpeza: $VOLUMES_BEFORE"
+
+            # Limpar APENAS containers parados
+            echo "Removendo containers parados..."
+            docker container prune -f || true
+
+            # Limpar APENAS imagens não utilizadas
+            echo "Removendo imagens não utilizadas..."
+            docker image prune -af || true
+
+            # Verificar volumes após limpeza
+            VOLUMES_AFTER=$(docker volume ls -q | grep -E "mercadoflow_backend_data|mercadoflow_redis_data" | wc -l)
+            echo "📊 Volumes de dados após limpeza: $VOLUMES_AFTER"
+
+            if [ "$VOLUMES_BEFORE" -ne "$VOLUMES_AFTER" ]; then
+              echo "❌ ERRO CRÍTICO: Volumes foram removidos durante limpeza!"
+              exit 1
+            else
+              echo "✅ Limpeza concluída com segurança, volumes preservados"
+            fi
+
+            # Build da imagem Docker
+            echo "Construindo imagens Docker..."
+            docker-compose -f docker-compose.vps.yml build --no-cache --pull || { echo "❌ Erro ao construir imagem Docker"; exit 1; }
+            echo "✅ Imagens Docker construídas com sucesso"
+
+            # Iniciar containers
+            echo "Iniciando containers..."
+            docker-compose -f docker-compose.vps.yml up -d --remove-orphans || { echo "❌ Erro ao iniciar containers"; exit 1; }
+            echo "✅ Containers iniciados"
+
+            # Aguardar containers iniciarem
+            echo "Aguardando containers iniciarem (30s)..."
+            sleep 30
+
+            # Verificar status dos containers
+            echo "=== Verificando status dos containers ==="
+            docker-compose -f docker-compose.vps.yml ps
+
+            # Verificar se containers estão rodando
+            if ! docker ps | grep -q mercadoflow-backend; then
+              echo "❌ Container mercadoflow-backend não está rodando!"
+              echo "=== Logs do backend ==="
+              docker logs mercadoflow-backend --tail=100
+              exit 1
+            fi
+            echo "✓ Container mercadoflow-backend está rodando"
+
+            if ! docker ps | grep -q mercadoflow-frontend; then
+              echo "❌ Container mercadoflow-frontend não está rodando!"
+              echo "=== Logs do frontend ==="
+              docker logs mercadoflow-frontend --tail=50
+              exit 1
+            fi
+            echo "✓ Container mercadoflow-frontend está rodando"
+
+            if ! docker ps | grep -q mercadoflow-redis; then
+              echo "❌ Container mercadoflow-redis não está rodando!"
+              echo "=== Logs do Redis ==="
+              docker logs mercadoflow-redis --tail=50
+              exit 1
+            fi
+            echo "✓ Container mercadoflow-redis está rodando"
+
+            if ! docker ps | grep -q mercadoflow-nginx; then
+              echo "❌ Container mercadoflow-nginx não está rodando!"
+              echo "=== Logs do Nginx ==="
+              docker logs mercadoflow-nginx --tail=50
+              exit 1
+            fi
+            echo "✓ Container mercadoflow-nginx está rodando"
+
+            # Aguardar aplicação inicializar
+            echo "Aguardando aplicação inicializar (20s)..."
+            sleep 20
+
+            # ===== BACKUP AUTOMÁTICO =====
+            echo "=== Criando backup de segurança do banco de dados ==="
+
+            # Verificar se banco existe no volume
+            if docker exec mercadoflow-backend test -f /app/data/mercadoflow.db; then
+              echo "📊 Banco de dados encontrado, criando backup..."
+
+              # Criar diretório de backups
+              mkdir -p ${APP_DIR}/backups
+
+              # Criar backup
+              BACKUP_FILE="${APP_DIR}/backups/backup_$(date +%Y%m%d_%H%M%S).db"
+              docker exec mercadoflow-backend sqlite3 /app/data/mercadoflow.db ".backup /app/data/backup.db"
+              docker cp mercadoflow-backend:/app/data/backup.db "$BACKUP_FILE"
+
+              if [ -s "$BACKUP_FILE" ]; then
+                BACKUP_SIZE=$(du -h "$BACKUP_FILE" | cut -f1)
+                echo "✅ Backup criado: $BACKUP_FILE ($BACKUP_SIZE)"
+
+                # Manter apenas últimos 7 backups
+                ls -t ${APP_DIR}/backups/backup_*.db | tail -n +8 | xargs -r rm
+                echo "✅ Backups antigos removidos (mantendo últimos 7)"
+              else
+                echo "⚠️ AVISO: Backup vazio ou falhou"
+              fi
+            else
+              echo "ℹ️ Banco de dados ainda não criado (primeiro deploy)"
+            fi
+
+            # ===== LOGS DE DIAGNÓSTICO =====
+            echo "=== Logs da Aplicação (últimas 50 linhas) ==="
+            echo "--- Backend ---"
+            docker logs mercadoflow-backend --tail=50
+            echo ""
+            echo "--- Nginx ---"
+            docker logs mercadoflow-nginx --tail=30
+
+            # ===== CONFIGURAR NGINX DO SISTEMA =====
+            echo "=== Configurando Nginx do sistema para porta 3300 ==="
+
+            # Criar configuração do Nginx
+            cat > /etc/nginx/sites-available/mercadoflow.conf << 'NGINX_EOF'
+            # HTTP - MercadoFlow
+            server {
+                listen 80;
+                listen [::]:80;
+
+                server_name mercadoflow.com www.mercadoflow.com;
+
+                # Redirecionar HTTP para HTTPS
+                return 301 https://$server_name$request_uri;
+            }
+
+            # HTTPS - MercadoFlow
+            server {
+                listen 443 ssl http2;
+                listen [::]:443 ssl http2;
+
+                server_name mercadoflow.com www.mercadoflow.com;
+
+                # SSL Configuration (certbot irá adicionar certificados)
+                # ssl_certificate e ssl_certificate_key serão configurados pelo certbot
+
+                # Logs
+                access_log /var/log/nginx/mercadoflow-access.log;
+                error_log /var/log/nginx/mercadoflow-error.log;
+
+                # Limite de upload (para arquivos XML NFe)
+                client_max_body_size 50M;
+                client_body_timeout 600s;
+
+                # Proxy para aplicação Docker na porta 3300
+                location / {
+                    proxy_pass http://127.0.0.1:3300;
+                    proxy_http_version 1.1;
+                    proxy_set_header Upgrade $http_upgrade;
+                    proxy_set_header Connection 'upgrade';
+                    proxy_set_header Host $host;
+                    proxy_cache_bypass $http_upgrade;
+                    proxy_set_header X-Real-IP $remote_addr;
+                    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                    proxy_set_header X-Forwarded-Proto $scheme;
+
+                    proxy_connect_timeout 300s;
+                    proxy_send_timeout 300s;
+                    proxy_read_timeout 300s;
+                }
+
+                # Health check
+                location /health {
+                    proxy_pass http://127.0.0.1:3300/health;
+                    proxy_http_version 1.1;
+                    proxy_set_header Host $host;
+                    access_log off;
+                }
+            }
+            NGINX_EOF
+
+            # Habilitar site
+            ln -sf /etc/nginx/sites-available/mercadoflow.conf /etc/nginx/sites-enabled/
+
+            # Remover configuração default se existir
+            rm -f /etc/nginx/sites-enabled/default
+
+            # Testar e recarregar Nginx
+            nginx -t && systemctl reload nginx
+            echo "✅ Nginx do sistema configurado com sucesso"
+
+            # Aguardar Nginx iniciar
+            sleep 3
+
+            # Verificar se está escutando nas portas
+            echo "=== Verificando portas em uso ==="
+            netstat -tulpn | grep ":80 " || echo "⚠️ Nginx não encontrado na porta 80"
+            netstat -tulpn | grep ":443 " || echo "⚠️ Nginx não encontrado na porta 443"
+            netstat -tulpn | grep ":3300 " || echo "⚠️ App não encontrado na porta 3300"
+
+            # ===== VERIFICAR HEALTH CHECK =====
+            echo "=== Verificando health check ==="
+            for i in {1..20}; do
+              if curl -f http://localhost:3300/health 2>/dev/null; then
+                echo "✅ MercadoFlow está rodando na porta 3300!"
+
+                echo ""
+                echo "=== Testando frontend ==="
+                curl -I http://localhost:3300 2>/dev/null | head -5
+
+                echo ""
+                echo "=== Testando API ==="
+                curl -I http://localhost:3300/api/v1/health 2>/dev/null | head -5 || echo "⚠️ API health check não disponível"
+
+                echo ""
+                echo "✅ Deploy concluído - aplicação está rodando!"
+                echo "📍 URLs:"
+                echo "   - https://mercadoflow.com"
+                echo "   - https://www.mercadoflow.com"
+                echo "📍 Porta externa: 3300"
+                echo "📍 Portas internas:"
+                echo "   - Frontend: 3000"
+                echo "   - Backend: 3001"
+                echo "📦 Volumes persistentes:"
+                echo "   - mercadoflow_backend_data: Banco SQLite"
+                echo "   - mercadoflow_redis_data: Cache Redis"
+                echo "   - mercadoflow_backend_uploads: Arquivos uploads"
+
+                echo ""
+                echo "⚠️ IMPORTANTE: Configure SSL com certbot:"
+                echo "   sudo certbot --nginx -d mercadoflow.com -d www.mercadoflow.com"
+
+                exit 0
+              fi
+              echo "Tentativa $i/20 falhou, aguardando 10s..."
+
+              # Mostrar logs a cada 4 tentativas
+              if [ $((i % 4)) -eq 0 ]; then
+                echo "=== Logs recentes ==="
+                docker logs mercadoflow-backend --tail=30
+              fi
+
+              sleep 10
+            done
+
+            echo "⚠️ Health check falhou após 20 tentativas"
+            echo "Logs completos:"
+            docker-compose -f docker-compose.vps.yml logs
+            exit 1
+
+      - name: Verify Deployment
+        if: success()
+        run: |
+          echo "✅ Deploy concluído com sucesso!"
+          echo "🌐 MercadoFlow disponível em:"
+          echo "   - https://mercadoflow.com"
+          echo "   - https://www.mercadoflow.com"
+          echo "📊 Health check: https://mercadoflow.com/health"
+          echo "🐳 Containers rodando:"
+          echo "   - mercadoflow-backend (API)"
+          echo "   - mercadoflow-frontend (React)"
+          echo "   - mercadoflow-redis (Cache)"
+          echo "   - mercadoflow-nginx (Proxy)"
+          echo "   - mercadoflow-cron (Jobs)"
+          echo ""
+          echo "⚠️ PRÓXIMO PASSO: Configure SSL executando na VPS:"
+          echo "   sudo certbot --nginx -d mercadoflow.com -d www.mercadoflow.com"

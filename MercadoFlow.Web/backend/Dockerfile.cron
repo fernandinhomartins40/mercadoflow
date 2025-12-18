@@ -1,6 +1,10 @@
 # MercadoFlow Background Jobs Dockerfile
 FROM node:20-alpine
 
+# Build argument for cache busting
+ARG BUILD_TIMESTAMP
+ENV BUILD_TIMESTAMP=${BUILD_TIMESTAMP}
+
 # Install system dependencies
 RUN apk add --no-cache \
     sqlite \

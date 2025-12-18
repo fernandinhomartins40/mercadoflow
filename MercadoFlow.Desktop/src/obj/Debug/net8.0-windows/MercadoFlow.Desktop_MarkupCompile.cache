@@ -1,0 +1,20 @@
+﻿MercadoFlow.Desktop
+1.0.0.0
+
+winexe
+C#
+.cs
+C:\Projestos Claude Code\mercadoflow\MercadoFlow.Desktop\src\obj\Debug\net8.0-windows\
+MercadoFlow.Desktop
+none
+false
+TRACE;DEBUG;NET;NET8_0;NETCOREAPP;WINDOWS;WINDOWS7_0;NET5_0_OR_GREATER;NET6_0_OR_GREATER;NET7_0_OR_GREATER;NET8_0_OR_GREATER;NETCOREAPP3_0_OR_GREATER;NETCOREAPP3_1_OR_GREATER;WINDOWS7_0_OR_GREATER
+C:\Projestos Claude Code\mercadoflow\MercadoFlow.Desktop\src\App.xaml
+3-223801921
+
+34-248617998
+2561938670463
+Views\ConfigurationWindow.xaml;Views\LogViewerWindow.xaml;Views\MainWindow.xaml;
+
+False
+
