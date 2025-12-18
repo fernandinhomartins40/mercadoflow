@@ -19,15 +19,16 @@ const AdminQuerySchema = z.object({
 /**
  * Middleware to check admin access
  */
-const requireAdmin = (req: AuthRequest, res: Response, next: any) => {
+const requireAdmin = (req: AuthRequest, res: Response, next: any): void => {
   if (req.user?.role !== 'ADMIN') {
-    return res.status(403).json({
+    res.status(403).json({
       success: false,
       error: {
         code: 'FORBIDDEN',
         message: 'Admin access required',
       },
     });
+    return;
   }
   next();
 };
@@ -152,13 +153,13 @@ router.get('/', async (req: AuthRequest, res: Response) => {
       alerts: systemAlerts,
     };
 
-    res.json({
+    return res.json({
       success: true,
       data: adminData,
     });
   } catch (error) {
     logger.error('Error fetching admin dashboard', { error, user: req.user?.id });
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: {
         code: 'INTERNAL_ERROR',
@@ -230,13 +231,13 @@ router.get('/users', async (req: AuthRequest, res: Response) => {
       },
     };
 
-    res.json({
+    return res.json({
       success: true,
       data: usersData,
     });
   } catch (error) {
     logger.error('Error fetching users data', { error, user: req.user?.id });
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: {
         code: 'INTERNAL_ERROR',
@@ -322,13 +323,13 @@ router.get('/system', async (req: AuthRequest, res: Response) => {
       },
     };
 
-    res.json({
+    return res.json({
       success: true,
       data: systemData,
     });
   } catch (error) {
     logger.error('Error fetching system data', { error, user: req.user?.id });
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: {
         code: 'INTERNAL_ERROR',
@@ -367,7 +368,7 @@ router.get('/markets', async (req: AuthRequest, res: Response) => {
       },
     });
 
-    res.json({
+    return res.json({
       success: true,
       data: {
         markets: markets.map((m) => ({
@@ -391,7 +392,7 @@ router.get('/markets', async (req: AuthRequest, res: Response) => {
     });
   } catch (error) {
     logger.error('Error fetching markets for admin', { error, user: req.user?.id });
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: {
         code: 'INTERNAL_ERROR',
@@ -408,6 +409,16 @@ router.get('/markets', async (req: AuthRequest, res: Response) => {
 router.post('/users/:id/toggle-status', async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'User ID is required',
+        },
+      });
+    }
 
     const user = await prisma.user.findUnique({
       where: { id },
@@ -442,14 +453,14 @@ router.post('/users/:id/toggle-status', async (req: AuthRequest, res: Response) 
       newStatus: updatedUser.isActive,
     });
 
-    res.json({
+    return res.json({
       success: true,
       data: updatedUser,
       message: `User ${updatedUser.isActive ? 'activated' : 'deactivated'} successfully`,
     });
   } catch (error) {
     logger.error('Error toggling user status', { error, userId: req.params.id });
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: {
         code: 'INTERNAL_ERROR',

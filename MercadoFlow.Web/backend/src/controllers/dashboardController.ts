@@ -138,7 +138,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
         productName: a.product?.name,
         createdAt: a.createdAt,
       })),
-      insights: [],
+      insights: [] as Array<{ type: string; title: string; description: string }>,
     };
 
     // Generate insights based on data
@@ -167,13 +167,13 @@ router.get('/', async (req: AuthRequest, res: Response) => {
       }
     }
 
-    res.json({
+    return res.json({
       success: true,
       data: dashboardData,
     });
   } catch (error) {
     logger.error('Error fetching dashboard data', { error, user: req.user?.id });
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: {
         code: 'INTERNAL_ERROR',
@@ -233,13 +233,13 @@ router.get('/sales', async (req: AuthRequest, res: Response) => {
       })),
     };
 
-    res.json({
+    return res.json({
       success: true,
       data: salesData,
     });
   } catch (error) {
     logger.error('Error fetching sales data', { error, user: req.user?.id });
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: {
         code: 'INTERNAL_ERROR',
@@ -271,7 +271,7 @@ router.get('/alerts', async (req: AuthRequest, res: Response) => {
     const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
     const alerts = await alertService.getUnreadAlerts(marketId, limit);
 
-    res.json({
+    return res.json({
       success: true,
       data: {
         alerts: alerts.map((a) => ({
@@ -289,7 +289,7 @@ router.get('/alerts', async (req: AuthRequest, res: Response) => {
     });
   } catch (error) {
     logger.error('Error fetching alerts', { error, user: req.user?.id });
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: {
         code: 'INTERNAL_ERROR',
@@ -306,15 +306,24 @@ router.get('/alerts', async (req: AuthRequest, res: Response) => {
 router.post('/alerts/:id/read', async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Alert ID is required',
+        },
+      });
+    }
     await alertService.markAsRead(id);
 
-    res.json({
+    return res.json({
       success: true,
       message: 'Alert marked as read',
     });
   } catch (error) {
     logger.error('Error marking alert as read', { error, alertId: req.params.id });
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: {
         code: 'INTERNAL_ERROR',

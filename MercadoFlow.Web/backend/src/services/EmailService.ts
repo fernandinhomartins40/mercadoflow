@@ -1,7 +1,7 @@
 import nodemailer from 'nodemailer';
 import { ConfigService } from './ConfigService';
 import { LoggerService } from './LoggerService';
-import { IEmailService } from '../types/common.types';
+import { EmailService as IEmailService } from '../types/common.types';
 
 const config = new ConfigService();
 const logger = new LoggerService();
@@ -83,12 +83,12 @@ export class EmailService implements IEmailService {
   /**
    * Send alert notification email
    */
-  async sendAlertEmail(to: string | string[], alertTitle: string, alertMessage: string, priority: string): Promise<boolean> {
-    return this.sendEmail(to, `🚨 Alerta: ${alertTitle}`, 'alert', {
-      title: alertTitle,
-      message: alertMessage,
-      priority,
-      priorityColor: this.getPriorityColor(priority),
+  async sendAlertEmail(to: string, alert: any): Promise<boolean> {
+    return this.sendEmail(to, `🚨 Alerta: ${alert.title || 'Alerta'}`, 'alert', {
+      title: alert.title || 'Alerta',
+      message: alert.message || '',
+      priority: alert.priority || 'MEDIUM',
+      priorityColor: this.getPriorityColor(alert.priority || 'MEDIUM'),
     });
   }
 
@@ -102,15 +102,22 @@ export class EmailService implements IEmailService {
   }
 
   /**
-   * Send password reset email
+   * Send password reset email (interface method)
    */
-  async sendPasswordResetEmail(to: string, resetToken: string): Promise<boolean> {
-    const resetLink = `${config.get('FRONTEND_URL', 'http://localhost:3001')}/reset-password?token=${resetToken}`;
+  async sendResetPasswordEmail(to: string, token: string): Promise<boolean> {
+    const resetLink = `${config.get('FRONTEND_URL', 'http://localhost:3001')}/reset-password?token=${token}`;
 
     return this.sendEmail(to, 'Redefinir Senha - MercadoFlow', 'password-reset', {
       resetLink,
       expiresIn: '1 hora',
     });
+  }
+
+  /**
+   * Send password reset email (legacy alias)
+   */
+  async sendPasswordResetEmail(to: string, resetToken: string): Promise<boolean> {
+    return this.sendResetPasswordEmail(to, resetToken);
   }
 
   /**
@@ -229,7 +236,7 @@ export class EmailService implements IEmailService {
       LOW: '#388E3C',
     };
 
-    return colors[priority] || colors.MEDIUM;
+    return colors[priority] ?? colors.MEDIUM ?? '#FBC02D';
   }
 
   /**

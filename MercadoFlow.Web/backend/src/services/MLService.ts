@@ -81,6 +81,8 @@ export class MLService {
             const item1 = uniqueItems[i];
             const item2 = uniqueItems[j];
 
+            if (!item1 || !item2) continue;
+
             // Sort to ensure consistent pair key
             const pair = item1 < item2 ? `${item1}|${item2}` : `${item2}|${item1}`;
             pairCounts.set(pair, (pairCounts.get(pair) || 0) + 1);
@@ -93,6 +95,8 @@ export class MLService {
 
       for (const [pairKey, pairCount] of pairCounts.entries()) {
         const [item1, item2] = pairKey.split('|');
+
+        if (!item1 || !item2) continue;
 
         // Calculate support: P(A ∩ B)
         const support = pairCount / totalTransactions;
@@ -164,18 +168,25 @@ export class MLService {
       // Insert new results (limit to top 100)
       const topAssociations = associations.slice(0, 100);
 
-      const created = await prisma.marketBasket.createMany({
-        data: topAssociations.map((assoc) => ({
-          marketId,
-          product1Id: assoc.product1Id,
-          product2Id: assoc.product2Id,
-          support: assoc.support,
-          confidence: assoc.confidence,
-          lift: assoc.lift,
-          analyzedAt: new Date(),
-        })),
+      const data = topAssociations.map((assoc) => ({
+        marketId,
+        product1Id: assoc.product1Id,
+        product2Id: assoc.product2Id,
+        support: assoc.support,
+        confidence: assoc.confidence,
+        lift: assoc.lift,
+        analyzedAt: new Date(),
+      }));
+
+      if (data.length === 0) {
+        return 0;
+      }
+
+      const createOptions: any = {
+        data,
         skipDuplicates: true,
-      });
+      };
+      const created = await prisma.marketBasket.createMany(createOptions);
 
       logger.business('Market basket results stored', {
         marketId,
@@ -350,6 +361,9 @@ export class MLService {
 
       // Check latest value
       const latest = quantities[quantities.length - 1];
+      if (latest === undefined) {
+        return { isAnomaly: false };
+      }
       const zScore = stdDev > 0 ? (latest - mean) / stdDev : 0;
 
       // Anomaly if z-score > 2 (more than 2 standard deviations)

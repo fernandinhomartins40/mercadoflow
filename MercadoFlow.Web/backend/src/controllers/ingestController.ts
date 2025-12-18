@@ -5,6 +5,7 @@ import rateLimit from 'express-rate-limit';
 
 import {
   InvoiceIngestionRequest,
+  InvoiceData,
   BatchInvoiceRequest,
   BatchInvoiceResponse,
   InvoiceValidationResult
@@ -396,20 +397,34 @@ router.post('/invoice', ingestRateLimit, async (req: AuthRequest, res: Response)
       });
     }
 
-    // Process invoice
-    const result = await processInvoice(validatedData, user.id);
+    // Process invoice - ensure type compatibility
+    const invoiceRequest: InvoiceIngestionRequest = {
+      chaveNFe: validatedData.chaveNFe,
+      marketId: validatedData.marketId,
+      agentVersion: validatedData.agentVersion,
+      rawXmlHash: validatedData.rawXmlHash,
+      invoice: {
+        ...validatedData.invoice,
+        ...(validatedData.invoice.cpfCnpjDestinatario !== undefined && {
+          cpfCnpjDestinatario: validatedData.invoice.cpfCnpjDestinatario
+        })
+      } as InvoiceData
+    };
+    const result = await processInvoice(invoiceRequest, user.id);
 
     if (result.success) {
-      const response: ApiResponse<{ invoiceId: string; warnings?: any[] }> = {
+      const responseData: { invoiceId: string; warnings?: any[] } = {
+        invoiceId: result.invoiceId!,
+        ...(validation.warnings && validation.warnings.length > 0 && { warnings: validation.warnings })
+      };
+
+      const response: ApiResponse<typeof responseData> = {
         success: true,
-        data: {
-          invoiceId: result.invoiceId!,
-          warnings: validation.warnings && validation.warnings.length > 0 ? validation.warnings : undefined
-        },
+        data: responseData,
         message: 'Invoice processed successfully'
       };
 
-      res.status(201).json(response);
+      return res.status(201).json(response);
     } else {
       if (result.error === 'Invoice already exists') {
         return res.status(409).json({
@@ -492,9 +507,12 @@ router.post('/batch', ingestRateLimit, async (req: AuthRequest, res: Response) =
     for (let i = 0; i < invoices.length; i++) {
       const invoice = invoices[i];
 
+      if (!invoice) continue;
+
       try {
         // Validate invoice if requested
-        if (processOptions?.validateSchema !== false) {
+        const validateSchema = (processOptions as any)?.validateSchema ?? true;
+        if (validateSchema !== false) {
           const validation = await validateInvoice(invoice.invoice);
           if (!validation.isValid) {
             results.errors++;
@@ -508,7 +526,8 @@ router.post('/batch', ingestRateLimit, async (req: AuthRequest, res: Response) =
         }
 
         // Check for duplicates if requested
-        if (processOptions?.skipDuplicates !== false) {
+        const skipDuplicates = (processOptions as any)?.skipDuplicates ?? true;
+        if (skipDuplicates !== false) {
           const existing = await prisma.invoice.findUnique({
             where: { chaveNFe: invoice.chaveNFe }
           });
@@ -524,16 +543,29 @@ router.post('/batch', ingestRateLimit, async (req: AuthRequest, res: Response) =
           }
         }
 
-        // Process invoice
-        const result = await processInvoice(invoice, user.id);
+        // Process invoice - ensure type compatibility
+        const invoiceRequest: InvoiceIngestionRequest = {
+          chaveNFe: invoice.chaveNFe,
+          marketId: invoice.marketId,
+          agentVersion: invoice.agentVersion,
+          rawXmlHash: invoice.rawXmlHash,
+          invoice: {
+            ...invoice.invoice,
+            ...(invoice.invoice.cpfCnpjDestinatario !== undefined && {
+              cpfCnpjDestinatario: invoice.invoice.cpfCnpjDestinatario
+            })
+          } as InvoiceData
+        };
+        const result = await processInvoice(invoiceRequest, user.id);
 
         if (result.success) {
           results.processed++;
-          results.results.push({
+          const resultItem: { chaveNFe: string; status: 'success'; invoiceId?: string } = {
             chaveNFe: invoice.chaveNFe,
             status: 'success' as const,
-            invoiceId: result.invoiceId || undefined
-          });
+            ...(result.invoiceId && { invoiceId: result.invoiceId })
+          };
+          results.results.push(resultItem);
         } else {
           results.errors++;
           results.results.push({
@@ -567,7 +599,7 @@ router.post('/batch', ingestRateLimit, async (req: AuthRequest, res: Response) =
       message: `Batch processing completed: ${results.processed} processed, ${results.skipped} skipped, ${results.errors} errors`
     };
 
-    res.json(response);
+    return res.json(response);
 
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -667,7 +699,7 @@ router.get('/status/:chaveNFe', async (req: AuthRequest, res: Response) => {
       });
     }
 
-    res.json({
+    return res.json({
       success: true,
       data: {
         id: invoice.id,

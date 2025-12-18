@@ -325,7 +325,7 @@ export class AlertService {
           },
         },
         orderBy: [{ priority: 'desc' }, { createdAt: 'desc' }],
-        take: limit,
+        ...(limit !== undefined && { take: limit }),
       });
 
       return alerts;

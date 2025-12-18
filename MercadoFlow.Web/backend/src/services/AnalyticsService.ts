@@ -317,17 +317,17 @@ export class AnalyticsService {
 
     switch (groupBy) {
       case 'day':
-        return d.toISOString().split('T')[0];
+        return d.toISOString().split('T')[0] ?? d.toISOString();
       case 'week':
         // Get Monday of the week
         const day = d.getDay();
         const diff = d.getDate() - day + (day === 0 ? -6 : 1);
         d.setDate(diff);
-        return d.toISOString().split('T')[0];
+        return d.toISOString().split('T')[0] ?? d.toISOString();
       case 'month':
         return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
       default:
-        return d.toISOString().split('T')[0];
+        return d.toISOString().split('T')[0] ?? d.toISOString();
     }
   }
 }

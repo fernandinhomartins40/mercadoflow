@@ -23,7 +23,9 @@
       "Bash(powershell.exe:*)",
       "Bash(powershell -Command:*)",
       "Bash(cmd.exe /c BUILD-INSTALLER-FINAL.bat)",
-      "Bash(test:*)"
+      "Bash(test:*)",
+      "Bash(npx tsc:*)",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": []

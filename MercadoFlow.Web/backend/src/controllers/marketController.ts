@@ -36,8 +36,8 @@ router.get('/', async (req: AuthRequest, res: Response) => {
     }
 
     // Get all markets (for admins) or specific market (for market users)
-    let marketsQuery: any = {
-      where: {},
+    const marketsQuery = {
+      where: {} as any,
       include: {
         users: {
           select: {
@@ -115,13 +115,13 @@ router.get('/', async (req: AuthRequest, res: Response) => {
       })),
     };
 
-    res.json({
+    return res.json({
       success: true,
       data: marketData,
     });
   } catch (error) {
     logger.error('Error fetching market overview', { error, user: req.user?.id });
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: {
         code: 'INTERNAL_ERROR',
@@ -229,13 +229,13 @@ router.get('/analysis', async (req: AuthRequest, res: Response) => {
       },
     };
 
-    res.json({
+    return res.json({
       success: true,
       data: analysisData,
     });
   } catch (error) {
     logger.error('Error performing market analysis', { error, user: req.user?.id });
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: {
         code: 'INTERNAL_ERROR',
@@ -253,6 +253,16 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const user = req.user!;
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Market ID is required',
+        },
+      });
+    }
 
     // Check access
     if (user.role !== 'ADMIN' && user.marketId !== id) {
@@ -312,7 +322,7 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
       });
     }
 
-    res.json({
+    return res.json({
       success: true,
       data: {
         market: {
@@ -339,7 +349,7 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
     });
   } catch (error) {
     logger.error('Error fetching market details', { error, marketId: req.params.id });
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: {
         code: 'INTERNAL_ERROR',

@@ -126,13 +126,13 @@ router.get('/', async (req: AuthRequest, res: Response) => {
       ],
     };
 
-    res.json({
+    return res.json({
       success: true,
       data: industryData,
     });
   } catch (error) {
     logger.error('Error fetching industry overview', { error, user: req.user?.id });
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: {
         code: 'INTERNAL_ERROR',
@@ -252,7 +252,7 @@ router.get('/benchmarks', async (req: AuthRequest, res: Response) => {
           industryAverage: 4.5,
         },
       },
-      recommendations: [],
+      recommendations: [] as Array<{ metric: string; currentValue: number; industryAverage: number; recommendation: string }>,
     };
 
     // Generate recommendations based on comparisons
@@ -274,13 +274,13 @@ router.get('/benchmarks', async (req: AuthRequest, res: Response) => {
       });
     }
 
-    res.json({
+    return res.json({
       success: true,
       data: benchmarkData,
     });
   } catch (error) {
     logger.error('Error fetching benchmark data', { error, user: req.user?.id });
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: {
         code: 'INTERNAL_ERROR',
@@ -298,6 +298,16 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const user = req.user!;
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Industry ID is required',
+        },
+      });
+    }
 
     // Check access
     if (user.role !== 'ADMIN' && user.industryId !== id) {
@@ -345,7 +355,7 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
       });
     }
 
-    res.json({
+    return res.json({
       success: true,
       data: {
         industry: {
@@ -362,7 +372,7 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
     });
   } catch (error) {
     logger.error('Error fetching industry details', { error, industryId: req.params.id });
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: {
         code: 'INTERNAL_ERROR',

@@ -347,4 +347,12 @@ export class LoggerService implements ILogger {
       (transport as any).level = level;
     });
   }
+
+  // Database query logging (alias for compatibility)
+  database(message: string, meta?: any): void {
+    this.query(message, meta);
+  }
 }
+
+// Export singleton instance
+export const logger = new LoggerService();

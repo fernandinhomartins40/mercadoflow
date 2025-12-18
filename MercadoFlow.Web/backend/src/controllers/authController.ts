@@ -96,12 +96,12 @@ async function generateTokens(user: UserInfo): Promise<{ token: string; refreshT
     userId: user.id,
     email: user.email,
     role: user.role,
-    marketId: user.marketId,
-    industryId: user.industryId
+    ...(user.marketId !== undefined && { marketId: user.marketId }),
+    ...(user.industryId !== undefined && { industryId: user.industryId })
   };
 
-  const token = jwt.sign(payload, jwtSecret, { expiresIn: jwtExpiresIn || '1h' });
-  const refreshToken = jwt.sign(payload, jwtSecret, { expiresIn: '30d' });
+  const token = jwt.sign(payload, jwtSecret, { expiresIn: jwtExpiresIn ?? '1h' } as jwt.SignOptions);
+  const refreshToken = jwt.sign(payload, jwtSecret, { expiresIn: '30d' } as jwt.SignOptions);
 
   // Store refresh token in Redis
   await redis.set(`refresh_token:${user.id}`, refreshToken, 30 * 24 * 60 * 60); // 30 days
@@ -207,7 +207,7 @@ router.post('/login', authRateLimit, async (req: Request, res: Response) => {
       }
     };
 
-    res.json(response);
+    return res.json(response);
 
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -333,7 +333,7 @@ router.post('/register', generalRateLimit, async (req: Request, res: Response) =
       }
     };
 
-    res.status(201).json(response);
+    return res.status(201).json(response);
 
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -423,7 +423,7 @@ router.post('/refresh', generalRateLimit, async (req: Request, res: Response) =>
       }
     };
 
-    res.json(response);
+    return res.json(response);
 
   } catch (error) {
     if (error instanceof UnauthorizedError) {
@@ -479,7 +479,7 @@ router.post('/logout', authMiddleware, async (req: AuthRequest, res: Response) =
       message: 'Logged out successfully'
     };
 
-    res.json(response);
+    return res.json(response);
 
   } catch (error) {
     logger.error('Logout error', { error, userId: req.user?.id });
@@ -520,7 +520,7 @@ router.post('/reset-password', generalRateLimit, async (req: Request, res: Respo
       });
     }
 
-    res.json({
+    return res.json({
       success: true,
       message: 'If the email exists, a reset link was sent'
     });
@@ -561,7 +561,7 @@ router.post('/reset-password/confirm', generalRateLimit, async (req: Request, re
       throw new UnauthorizedError('Invalid or expired reset token');
     }
 
-    const user = await prisma.user.findUnique({ where: { id: userId } });
+    const user = await prisma.user.findUnique({ where: { id: userId as string } });
     if (!user) {
       throw new NotFoundError('User not found');
     }
@@ -585,7 +585,7 @@ router.post('/reset-password/confirm', generalRateLimit, async (req: Request, re
       ip: req.ip
     });
 
-    res.json({
+    return res.json({
       success: true,
       message: 'Password has been reset successfully'
     });
@@ -666,7 +666,7 @@ router.get('/profile', authMiddleware, async (req: AuthRequest, res: Response) =
       }
     };
 
-    res.json(response);
+    return res.json(response);
 
   } catch (error) {
     if (error instanceof NotFoundError) {
@@ -734,7 +734,7 @@ router.get('/me', authMiddleware, async (req: AuthRequest, res: Response) => {
       }
     };
 
-    res.json(response);
+    return res.json(response);
 
   } catch (error) {
     if (error instanceof NotFoundError) {
@@ -809,7 +809,7 @@ router.put('/change-password', authMiddleware, async (req: AuthRequest, res: Res
       message: 'Password changed successfully'
     };
 
-    res.json(response);
+    return res.json(response);
 
   } catch (error) {
     if (error instanceof z.ZodError) {
