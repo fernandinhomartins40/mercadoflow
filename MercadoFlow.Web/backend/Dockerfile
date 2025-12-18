@@ -28,9 +28,7 @@ COPY tsconfig.json ./
 COPY prisma/ ./prisma/
 
 # Install all dependencies first (needed for build)
-RUN npm ci --only=production && \
-    npm install --save-dev typescript @types/node && \
-    npm cache clean --force
+RUN npm install && npm cache clean --force
 
 # Generate Prisma client
 RUN npx prisma generate
@@ -66,7 +64,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install production dependencies only
-RUN npm ci --only=production && npm cache clean --force
+RUN npm install --omit=dev && npm cache clean --force
 
 # Copy built application and Prisma files from base
 COPY --from=base /app/dist ./dist
