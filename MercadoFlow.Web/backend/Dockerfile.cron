@@ -52,7 +52,7 @@ cron.schedule('0 2 * * *', async () => {
   console.log('📊 Executando job de analytics diárias...');
   try {
     // Import and run daily analytics
-    const { DailySalesAnalyticsJob } = require('./dist/jobs/DailySalesAnalyticsJob');
+    const { DailySalesAnalyticsJob } = require('./dist/src/jobs/DailySalesAnalyticsJob');
     await DailySalesAnalyticsJob.execute();
     console.log('✅ Job de analytics diárias concluída');
   } catch (error) {
@@ -64,7 +64,7 @@ cron.schedule('0 2 * * *', async () => {
 cron.schedule('0 3 * * 0', async () => {
   console.log('🛒 Executando job de market basket semanal...');
   try {
-    const { WeeklyMarketBasketJob } = require('./dist/jobs/WeeklyMarketBasketJob');
+    const { WeeklyMarketBasketJob } = require('./dist/src/jobs/WeeklyMarketBasketJob');
     await WeeklyMarketBasketJob.execute();
     console.log('✅ Job de market basket semanal concluída');
   } catch (error) {
@@ -76,7 +76,7 @@ cron.schedule('0 3 * * 0', async () => {
 cron.schedule('0 4 1 * *', async () => {
   console.log('📈 Executando job de análise sazonal mensal...');
   try {
-    const { MonthlySeasonalAnalysisJob } = require('./dist/jobs/MonthlySeasonalAnalysisJob');
+    const { MonthlySeasonalAnalysisJob } = require('./dist/src/jobs/MonthlySeasonalAnalysisJob');
     await MonthlySeasonalAnalysisJob.execute();
     console.log('✅ Job de análise sazonal concluída');
   } catch (error) {
@@ -88,7 +88,7 @@ cron.schedule('0 4 1 * *', async () => {
 cron.schedule('0 * * * *', async () => {
   console.log('🚨 Executando job de geração de alertas...');
   try {
-    const { AlertGenerationJob } = require('./dist/jobs/AlertGenerationJob');
+    const { AlertGenerationJob } = require('./dist/src/jobs/AlertGenerationJob');
     await AlertGenerationJob.execute();
     console.log('✅ Job de geração de alertas concluída');
   } catch (error) {
