@@ -1,3 +1,5 @@
+import { ProductMetrics } from './analytics.types';
+
 export interface Market {
   id: string;
   name: string;

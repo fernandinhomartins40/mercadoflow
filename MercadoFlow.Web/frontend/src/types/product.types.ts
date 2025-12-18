@@ -1,3 +1,5 @@
+import { ProductMetrics } from './analytics.types';
+
 export interface Product {
   id: string;
   ean: string;
