@@ -28,18 +28,29 @@ import { ConfigService } from './services/ConfigService';
 import { LoggerService } from './services/LoggerService';
 
 // Initialize services
+console.log('[STARTUP] Initializing services...');
 const config = new ConfigService();
+console.log('[STARTUP] ✓ ConfigService initialized');
+
 const logger = new LoggerService();
+console.log('[STARTUP] ✓ LoggerService initialized');
+
 const redis = new RedisService();
+console.log('[STARTUP] ✓ RedisService initialized');
 
 // Create Express app
+console.log('[STARTUP] Creating Express application...');
 const app = express();
 const server = createServer(app);
+console.log('[STARTUP] ✓ Express app and HTTP server created');
 
 // Trust proxy (important for rate limiting behind reverse proxy)
 app.set('trust proxy', 1);
 
+console.log('[STARTUP] Applying middleware...');
+
 // Security middleware
+console.log('[STARTUP] - Applying Helmet security middleware');
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
@@ -66,9 +77,11 @@ const corsOptions = {
   maxAge: 86400 // 24 hours
 };
 
+console.log('[STARTUP] - Applying CORS middleware', { origins: corsOptions.origin });
 app.use(cors(corsOptions));
 
 // Compression
+console.log('[STARTUP] - Applying compression middleware');
 app.use(compression({
   level: 6,
   threshold: 1024,
@@ -81,6 +94,7 @@ app.use(compression({
 }));
 
 // Body parsing
+console.log('[STARTUP] - Applying body parsing middleware');
 app.use(express.json({
   limit: config.get('MAX_FILE_SIZE', '50mb'),
   verify: (req, res, buf) => {
@@ -119,23 +133,34 @@ const createRateLimit = (windowMs: number, max: number, message?: string) => {
 };
 
 // Global rate limiting
+console.log('[STARTUP] - Applying rate limiting middleware');
 app.use(createRateLimit(
   config.get('RATE_LIMIT_WINDOW_MS', 900000), // 15 minutes
   config.get('RATE_LIMIT_MAX_REQUESTS', 100)
 ));
 
 // Request logging
+console.log('[STARTUP] - Applying request logger middleware');
 app.use(requestLogger);
 
+console.log('[STARTUP] Registering routes...');
+
 // Health check (before auth middleware)
+console.log('[STARTUP] - Registering /api/v1/health');
 app.use('/api/v1/health', healthRoutes);
 
 // API routes with authentication
+console.log('[STARTUP] - Registering /api/v1/auth');
 app.use('/api/v1/auth', authRoutes);
+console.log('[STARTUP] - Registering /api/v1/ingest');
 app.use('/api/v1/ingest', authMiddleware, ingestRoutes);
+console.log('[STARTUP] - Registering /api/v1/dashboard');
 app.use('/api/v1/dashboard', authMiddleware, dashboardRoutes);
+console.log('[STARTUP] - Registering /api/v1/markets');
 app.use('/api/v1/markets', authMiddleware, marketRoutes);
+console.log('[STARTUP] - Registering /api/v1/industries');
 app.use('/api/v1/industries', authMiddleware, industryRoutes);
+console.log('[STARTUP] - Registering /api/v1/admin');
 app.use('/api/v1/admin', authMiddleware, adminRoutes);
 
 // API documentation
@@ -169,7 +194,10 @@ app.use((req, res) => {
 });
 
 // Error handling middleware (must be last)
+console.log('[STARTUP] - Applying error handler middleware');
 app.use(errorHandler);
+
+console.log('[STARTUP] ✓ All middleware and routes registered');
 
 // Graceful shutdown
 const gracefulShutdown = async (signal: string) => {
@@ -221,27 +249,52 @@ const HOST = config.get('HOST', '0.0.0.0');
 
 async function startServer() {
   try {
+    console.log('[STARTUP] Starting server initialization...');
+    console.log(`[STARTUP] Host: ${HOST}, Port: ${PORT}`);
+    console.log(`[STARTUP] Environment: ${config.get('NODE_ENV', 'development')}`);
+
     // Test database connection
+    console.log('[STARTUP] Connecting to database...');
     await prisma.$connect();
+    console.log('[STARTUP] ✓ Database connected successfully');
     logger.info('Database connected successfully');
 
     // Test Redis connection
-    await redis.connect();
-    logger.info('Redis connected successfully');
+    console.log('[STARTUP] Connecting to Redis...');
+    try {
+      await redis.connect();
+      console.log('[STARTUP] ✓ Redis connected successfully');
+      logger.info('Redis connected successfully');
+    } catch (redisError) {
+      console.error('[STARTUP] ✗ Redis connection failed:', redisError);
+      logger.error('Redis connection failed:', redisError);
+      // Continue without Redis - application can still work
+      console.log('[STARTUP] ⚠ Continuing without Redis (some features may be limited)');
+    }
 
     // Start HTTP server
+    console.log('[STARTUP] Starting HTTP server...');
     server.listen(PORT, HOST, () => {
+      console.log(`[STARTUP] ✓ Server listening on ${HOST}:${PORT}`);
       logger.info(`🚀 MercadoFlow API server running on ${HOST}:${PORT}`);
       logger.info(`📚 API Documentation: http://${HOST}:${PORT}/api/v1/docs`);
       logger.info(`💓 Health Check: http://${HOST}:${PORT}/api/v1/health`);
       logger.info(`🌍 Environment: ${config.get('NODE_ENV', 'development')}`);
+      console.log('[STARTUP] ============================================');
+      console.log('[STARTUP] 🚀 MercadoFlow Backend Ready!');
+      console.log('[STARTUP] ============================================');
     });
 
   } catch (error) {
+    console.error('[STARTUP] ✗ FATAL ERROR during server initialization:', error);
     logger.error('Failed to start server:', error);
     process.exit(1);
   }
 }
+
+console.log('[STARTUP] ============================================');
+console.log('[STARTUP] MercadoFlow Backend Starting...');
+console.log('[STARTUP] ============================================');
 
 // Start the server
 startServer();
