@@ -17,22 +17,24 @@ const USER_KEY = 'mercadoflow_user';
 export const authService = {
   // Login
   async login(credentials: LoginRequest): Promise<AuthResponse> {
-    const response = await api.post<AuthResponse>('/api/v1/auth/login', credentials);
-    if (response.data) {
-      this.setTokens(response.data.token, response.data.refreshToken);
-      this.setUser(response.data.user);
+    const response = await api.post<{success: boolean; data: AuthResponse}>('/api/v1/auth/login', credentials);
+    const authData = response.data.data; // API returns {success: true, data: {...}}
+    if (authData) {
+      this.setTokens(authData.token, authData.refreshToken);
+      this.setUser(authData.user);
     }
-    return response.data;
+    return authData;
   },
 
   // Register
   async register(data: RegisterRequest): Promise<AuthResponse> {
-    const response = await api.post<AuthResponse>('/api/v1/auth/register', data);
-    if (response.data) {
-      this.setTokens(response.data.token, response.data.refreshToken);
-      this.setUser(response.data.user);
+    const response = await api.post<{success: boolean; data: AuthResponse}>('/api/v1/auth/register', data);
+    const authData = response.data.data; // API returns {success: true, data: {...}}
+    if (authData) {
+      this.setTokens(authData.token, authData.refreshToken);
+      this.setUser(authData.user);
     }
-    return response.data;
+    return authData;
   },
 
   // Logout
@@ -51,16 +53,17 @@ export const authService = {
       throw new Error('No refresh token available');
     }
 
-    const response = await api.post<AuthResponse>('/api/v1/auth/refresh', {
+    const response = await api.post<{success: boolean; data: AuthResponse}>('/api/v1/auth/refresh', {
       refreshToken,
     } as RefreshTokenRequest);
 
-    if (response.data) {
-      this.setTokens(response.data.token, response.data.refreshToken);
-      this.setUser(response.data.user);
+    const authData = response.data.data; // API returns {success: true, data: {...}}
+    if (authData) {
+      this.setTokens(authData.token, authData.refreshToken);
+      this.setUser(authData.user);
     }
 
-    return response.data;
+    return authData;
   },
 
   // Change Password
@@ -80,11 +83,12 @@ export const authService = {
 
   // Get Current User
   async getCurrentUser(): Promise<User> {
-    const response = await api.get<User>('/api/v1/auth/me');
-    if (response.data) {
-      this.setUser(response.data);
+    const response = await api.get<{success: boolean; data: User}>('/api/v1/auth/me');
+    const userData = response.data.data; // API returns {success: true, data: {...}}
+    if (userData) {
+      this.setUser(userData);
     }
-    return response.data;
+    return userData;
   },
 
   // Token Management
