@@ -7,6 +7,7 @@ import { createServer } from 'http';
 
 // Import lib
 import { prisma } from '@/lib/prisma';
+import { config, logger, redis, initializeServices } from '@/lib/services';
 
 // Import middleware
 import { errorHandler } from './middleware/errorHandler';
@@ -22,20 +23,10 @@ import industryRoutes from './controllers/industryController';
 import adminRoutes from './controllers/adminController';
 import healthRoutes from './controllers/healthController';
 
-// Import services
-import { RedisService } from './services/RedisService';
-import { ConfigService } from './services/ConfigService';
-import { LoggerService } from './services/LoggerService';
-
 // Initialize services
 console.log('[STARTUP] Initializing services...');
-const config = new ConfigService();
 console.log('[STARTUP] ✓ ConfigService initialized');
-
-const logger = new LoggerService();
 console.log('[STARTUP] ✓ LoggerService initialized');
-
-const redis = new RedisService();
 console.log('[STARTUP] ✓ RedisService initialized');
 
 // Create Express app
@@ -259,18 +250,9 @@ async function startServer() {
     console.log('[STARTUP] ✓ Database connected successfully');
     logger.info('Database connected successfully');
 
-    // Test Redis connection
-    console.log('[STARTUP] Connecting to Redis...');
-    try {
-      await redis.connect();
-      console.log('[STARTUP] ✓ Redis connected successfully');
-      logger.info('Redis connected successfully');
-    } catch (redisError) {
-      console.error('[STARTUP] ✗ Redis connection failed:', redisError);
-      logger.error('Redis connection failed:', redisError);
-      // Continue without Redis - application can still work
-      console.log('[STARTUP] ⚠ Continuing without Redis (some features may be limited)');
-    }
+    // Initialize services (Redis, etc.)
+    console.log('[STARTUP] Connecting services...');
+    await initializeServices();
 
     // Start HTTP server
     console.log('[STARTUP] Starting HTTP server...');

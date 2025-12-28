@@ -1,10 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { v4 as uuidv4 } from 'uuid';
-import { LoggerService } from '../services/LoggerService';
-import { ConfigService } from '../services/ConfigService';
-
-const logger = new LoggerService();
-const config = new ConfigService();
+import { config, logger } from '@/lib/services';
 
 interface RequestWithId extends Request {
   id?: string;

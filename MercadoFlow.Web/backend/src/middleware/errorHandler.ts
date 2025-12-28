@@ -1,13 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
 import { Prisma } from '@prisma/client';
 import { ZodError } from 'zod';
+import { config, logger } from '@/lib/services';
 import { AppError, ValidationError, NotFoundError, UnauthorizedError, ForbiddenError } from '../types/common.types';
 import { ErrorCodes } from '../types/api.types';
-import { LoggerService } from '../services/LoggerService';
-import { ConfigService } from '../services/ConfigService';
-
-const logger = new LoggerService();
-const config = new ConfigService();
 
 export const errorHandler = (
   error: any,

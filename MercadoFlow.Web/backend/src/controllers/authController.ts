@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
+import { config, logger, redis } from '@/lib/services';
 import rateLimit from 'express-rate-limit';
 
 import {
@@ -18,17 +19,11 @@ import {
 } from '../types/auth.types';
 import { ApiResponse } from '../types/api.types';
 import { ValidationError, UnauthorizedError, ConflictError, NotFoundError } from '../types/common.types';
-import { ConfigService } from '../services/ConfigService';
-import { LoggerService } from '../services/LoggerService';
-import { RedisService } from '../services/RedisService';
 import { EmailService } from '../services/EmailService';
 import { authMiddleware, AuthRequest } from '../middleware/authMiddleware';
 import crypto from 'crypto';
 
 const router = Router();
-const config = new ConfigService();
-const logger = new LoggerService();
-const redis = new RedisService();
 const emailService = new EmailService();
 
 // Rate limiting for authentication endpoints

@@ -1,15 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { prisma } from '@/lib/prisma';
+import { config, logger, redis } from '@/lib/services';
 import { UnauthorizedError, ForbiddenError } from '../types/common.types';
 import { JwtPayload, UserInfo, UserRole } from '../types/auth.types';
-import { ConfigService } from '../services/ConfigService';
-import { LoggerService } from '../services/LoggerService';
-import { RedisService } from '../services/RedisService';
-
-const config = new ConfigService();
-const logger = new LoggerService();
-const redis = new RedisService();
 
 export interface AuthRequest extends Request {
   user?: UserInfo;

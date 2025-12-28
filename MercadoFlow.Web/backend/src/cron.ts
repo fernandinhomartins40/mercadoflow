@@ -5,17 +5,13 @@
  * Runs in a separate container to handle background processing.
  */
 
-import { config } from 'dotenv';
+import { config as dotenvConfig } from 'dotenv';
 import { cronJobsService } from './services/CronJobsService';
-import { LoggerService } from './services/LoggerService';
+import { logger, redis, initializeServices } from './lib/services';
 import { prisma } from './lib/prisma';
-import { RedisService } from './services/RedisService';
 
 // Load environment variables
-config();
-
-const logger = new LoggerService();
-const redis = new RedisService();
+dotenvConfig();
 
 async function main() {
   try {
@@ -25,9 +21,8 @@ async function main() {
     await prisma.$connect();
     logger.info('✅ Database connected');
 
-    // Test Redis connection
-    await redis.connect();
-    logger.info('✅ Redis connected');
+    // Initialize services (Redis, etc.)
+    await initializeServices();
 
     // Start all cron jobs
     await cronJobsService.startAll();
