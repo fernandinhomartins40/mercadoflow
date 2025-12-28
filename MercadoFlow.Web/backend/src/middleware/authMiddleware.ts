@@ -11,13 +11,24 @@ export interface AuthRequest extends Request {
 
 export const authMiddleware = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const authHeader = req.headers.authorization;
+    // Try to get token from cookie first, then fallback to Authorization header
+    let token: string | undefined;
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      throw new UnauthorizedError('Access token required');
+    // Check httpOnly cookie first (preferred method)
+    if (req.cookies?.accessToken) {
+      token = req.cookies.accessToken;
+    }
+    // Fallback to Authorization header for backwards compatibility
+    else {
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        token = authHeader.substring(7);
+      }
     }
 
-    const token = authHeader.substring(7);
+    if (!token) {
+      throw new UnauthorizedError('Access token required');
+    }
 
     // Check if token is blacklisted (using individual keys)
     const tokenKey = `blacklist:token:${token}`;

@@ -16,9 +16,11 @@ export const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true, // Enable sending/receiving httpOnly cookies
 });
 
-// Request interceptor to add auth token
+// Request interceptor - no longer needed for token as it's in httpOnly cookie
+// But keep for backwards compatibility during transition
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem(TOKEN_KEY);
   if (token) {

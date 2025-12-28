@@ -192,11 +192,28 @@ router.post('/login', authRateLimit, async (req: Request, res: Response) => {
     // Log successful login
     logger.events.userLogin(user.id, user.email, req.ip || 'unknown');
 
+    // Set httpOnly cookies for tokens
+    const isProduction = config.get('NODE_ENV') === 'production';
+    const cookieOptions = {
+      httpOnly: true,
+      secure: isProduction, // HTTPS only in production
+      sameSite: 'lax' as const,
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      path: '/'
+    };
+
+    res.cookie('accessToken', token, {
+      ...cookieOptions,
+      maxAge: 60 * 60 * 1000 // 1 hour for access token
+    });
+
+    res.cookie('refreshToken', refreshToken, cookieOptions);
+
     const response: ApiResponse<LoginResponse> = {
       success: true,
       data: {
         user: userInfo,
-        token,
+        token, // Still send in response for backwards compatibility during transition
         refreshToken,
         expiresIn: jwt.decode(token) ? (jwt.decode(token) as any).exp - Math.floor(Date.now() / 1000) : 3600
       }
@@ -466,6 +483,10 @@ router.post('/logout', authMiddleware, async (req: AuthRequest, res: Response) =
 
     // Remove refresh token
     await redis.del(`refresh_token:${user.id}`);
+
+    // Clear httpOnly cookies
+    res.clearCookie('accessToken', { path: '/' });
+    res.clearCookie('refreshToken', { path: '/' });
 
     logger.events.userLogout(user.id, user.email);
 

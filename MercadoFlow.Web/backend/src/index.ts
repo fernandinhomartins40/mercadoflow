@@ -3,7 +3,8 @@ import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
-import { createServer } from 'http';
+import cookieParser from 'cookie-parser';
+import { createServer} from 'http';
 
 // Import lib
 import { prisma } from '@/lib/prisma';
@@ -97,6 +98,10 @@ app.use(express.urlencoded({
   extended: true,
   limit: config.get('MAX_FILE_SIZE', '50mb')
 }));
+
+// Cookie parsing
+console.log('[STARTUP] - Applying cookie parser middleware');
+app.use(cookieParser());
 
 // Rate limiting
 const createRateLimit = (windowMs: number, max: number, message?: string) => {
