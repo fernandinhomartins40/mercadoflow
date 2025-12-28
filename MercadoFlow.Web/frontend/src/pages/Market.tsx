@@ -19,7 +19,7 @@ const Market: React.FC = () => {
     <MainLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Market Intelligence</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Inteligência de Mercado</h1>
           <p className="text-gray-600 mt-1">Análise de cesta de mercado e associações de produtos</p>
         </div>
         <Card title="Associações de Produtos">

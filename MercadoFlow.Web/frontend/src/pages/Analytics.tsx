@@ -7,7 +7,7 @@ const Analytics: React.FC = () => {
     <MainLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Analytics</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Análises</h1>
           <p className="text-gray-600 mt-1">Análise detalhada de vendas e produtos</p>
         </div>
 

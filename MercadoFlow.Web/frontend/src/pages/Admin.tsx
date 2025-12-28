@@ -16,7 +16,7 @@ const Admin: React.FC = () => {
     <MainLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Admin Panel</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Painel Administrativo</h1>
           <p className="text-gray-600 mt-1">Gerenciamento do sistema</p>
         </div>
 
@@ -30,8 +30,8 @@ const Admin: React.FC = () => {
           </Card>
         </div>
 
-        <Card title="System Health">
-          <div className="text-center text-gray-600 py-8">Saúde do sistema</div>
+        <Card title="Saúde do Sistema">
+          <div className="text-center text-gray-600 py-8">Status e monitoramento do sistema</div>
         </Card>
       </div>
     </MainLayout>
