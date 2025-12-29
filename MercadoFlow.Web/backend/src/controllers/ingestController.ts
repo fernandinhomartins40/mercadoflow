@@ -22,9 +22,9 @@ const config = new ConfigService();
 const logger = new LoggerService();
 const redis = new RedisService();
 
-function normalizeDateTimeString(value: unknown): unknown {
+function normalizeDateTimeString(value: unknown): string {
   if (typeof value !== 'string') {
-    return value;
+    return '';
   }
 
   let cleaned = value.trim().replace(' ', 'T').replace('UTC', 'Z');
@@ -50,6 +50,21 @@ function normalizeDateTimeString(value: unknown): unknown {
   }
 
   return cleaned;
+}
+
+function coerceToIsoDate(value: string): { value: string; usedFallback: boolean } {
+  const normalized = normalizeDateTimeString(value);
+  const normalizedDate = new Date(normalized);
+  if (!Number.isNaN(normalizedDate.getTime())) {
+    return { value: normalizedDate.toISOString(), usedFallback: false };
+  }
+
+  const rawDate = new Date(value);
+  if (!Number.isNaN(rawDate.getTime())) {
+    return { value: rawDate.toISOString(), usedFallback: false };
+  }
+
+  return { value: new Date().toISOString(), usedFallback: true };
 }
 
 // Rate limiting for data ingestion (higher limits)
@@ -119,7 +134,7 @@ const invoiceDataSchema = z.object({
   chaveNFe: z.string().length(44, 'Chave NFe must be 44 characters'),
   serie: z.string().min(1),
   numero: z.string().min(1),
-  dataEmissao: z.preprocess(normalizeDateTimeString, z.string().datetime()),
+  dataEmissao: z.preprocess(normalizeDateTimeString, z.string().min(1)),
   documentType: z.enum(['NFE', 'NFCE']),
   xmlVersion: z.enum(['VERSION_310', 'VERSION_400', 'UNKNOWN']),
   cnpjEmitente: z.string().min(14).max(14),
@@ -427,6 +442,9 @@ router.post('/invoice', ingestRateLimit, async (req: AuthRequest, res: Response)
     }
 
     // Validate invoice data
+    const coerced = coerceToIsoDate(validatedData.invoice.dataEmissao);
+    validatedData.invoice.dataEmissao = coerced.value;
+
     const validation = await validateInvoice(validatedData.invoice);
     if (!validation.isValid) {
       return res.status(400).json({
@@ -556,6 +574,9 @@ router.post('/batch', ingestRateLimit, async (req: AuthRequest, res: Response) =
       if (!invoice) continue;
 
       try {
+        const coerced = coerceToIsoDate(invoice.invoice.dataEmissao);
+        invoice.invoice.dataEmissao = coerced.value;
+
         // Validate invoice if requested
         const validateSchema = (processOptions as any)?.validateSchema ?? true;
         if (validateSchema !== false) {
