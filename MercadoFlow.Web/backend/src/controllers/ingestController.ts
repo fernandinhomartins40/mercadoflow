@@ -487,6 +487,17 @@ router.post('/invoice', ingestRateLimit, async (req: AuthRequest, res: Response)
     const result = await processInvoice(invoiceRequest, user.id);
 
     if (result.success) {
+      await redis.set(`ingest:last:${validatedData.marketId}`, {
+        marketId: validatedData.marketId,
+        userId: user.id,
+        processed: 1,
+        skipped: 0,
+        errors: 0,
+        batchSize: 1,
+        updatedAt: new Date().toISOString(),
+        source: 'invoice'
+      }, 86400);
+
       const responseData: { invoiceId: string; warnings?: any[] } = {
         invoiceId: result.invoiceId!,
         ...(validation.warnings && validation.warnings.length > 0 && { warnings: validation.warnings })
@@ -576,6 +587,7 @@ router.post('/batch', ingestRateLimit, async (req: AuthRequest, res: Response) =
       errors: 0,
       results: []
     };
+    const perMarketStats: Record<string, { processed: number; skipped: number; errors: number; batchSize: number }> = {};
 
     // Process each invoice
     for (let i = 0; i < invoices.length; i++) {
@@ -648,6 +660,10 @@ router.post('/batch', ingestRateLimit, async (req: AuthRequest, res: Response) =
 
         if (result.success) {
           results.processed++;
+          const marketStats = perMarketStats[invoice.marketId] ?? { processed: 0, skipped: 0, errors: 0, batchSize: 0 };
+          marketStats.processed += 1;
+          marketStats.batchSize += 1;
+          perMarketStats[invoice.marketId] = marketStats;
           const resultItem: { chaveNFe: string; status: 'success'; invoiceId?: string } = {
             chaveNFe: invoice.chaveNFe,
             status: 'success' as const,
@@ -656,6 +672,10 @@ router.post('/batch', ingestRateLimit, async (req: AuthRequest, res: Response) =
           results.results.push(resultItem);
         } else {
           results.errors++;
+          const marketStats = perMarketStats[invoice.marketId] ?? { processed: 0, skipped: 0, errors: 0, batchSize: 0 };
+          marketStats.errors += 1;
+          marketStats.batchSize += 1;
+          perMarketStats[invoice.marketId] = marketStats;
           results.results.push({
             chaveNFe: invoice.chaveNFe,
             status: 'error' as const,
@@ -665,6 +685,10 @@ router.post('/batch', ingestRateLimit, async (req: AuthRequest, res: Response) =
 
       } catch (error) {
         results.errors++;
+        const marketStats = perMarketStats[invoice.marketId] ?? { processed: 0, skipped: 0, errors: 0, batchSize: 0 };
+        marketStats.errors += 1;
+        marketStats.batchSize += 1;
+        perMarketStats[invoice.marketId] = marketStats;
         results.results.push({
           chaveNFe: invoice.chaveNFe,
           status: 'error' as const,
@@ -680,6 +704,21 @@ router.post('/batch', ingestRateLimit, async (req: AuthRequest, res: Response) =
       skipped: results.skipped,
       errors: results.errors
     });
+
+    const now = new Date().toISOString();
+    await Promise.all(Object.entries(perMarketStats).map(([marketId, stats]) => {
+      const safeStats = stats ?? { processed: 0, skipped: 0, errors: 0, batchSize: 0 };
+      return redis.set(`ingest:last:${marketId}`, {
+        marketId,
+        userId: user.id,
+        processed: safeStats.processed,
+        skipped: safeStats.skipped,
+        errors: safeStats.errors,
+        batchSize: safeStats.batchSize,
+        updatedAt: now,
+        source: 'batch'
+      }, 86400);
+    }));
 
     const response: ApiResponse<BatchInvoiceResponse> = {
       success: true,
