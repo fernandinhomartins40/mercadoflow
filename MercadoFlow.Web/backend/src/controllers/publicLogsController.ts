@@ -31,7 +31,12 @@ router.get('/logs', (req: Request, res: Response) => {
   const contains = req.query.contains ? String(req.query.contains) : undefined;
   const since = req.query.since ? String(req.query.since) : undefined;
 
-  const logs = logger.getRecentLogs({ limit, level, contains, since });
+  const queryOptions: { limit: number; level?: string; contains?: string; since?: string } = { limit };
+  if (level) queryOptions.level = level;
+  if (contains) queryOptions.contains = contains;
+  if (since) queryOptions.since = since;
+
+  const logs = logger.getRecentLogs(queryOptions);
 
   return res.json({
     success: true,
