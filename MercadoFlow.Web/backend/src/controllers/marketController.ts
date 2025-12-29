@@ -61,7 +61,9 @@ router.get('/', async (req: AuthRequest, res: Response) => {
     };
 
     // Filter by user role
-    if (user.role === 'MARKET_OWNER' || user.role === 'MARKET_MANAGER') {
+    if (user.role === 'MARKET_OWNER') {
+      marketsQuery.where.ownerId = user.id;
+    } else if (user.role === 'MARKET_MANAGER') {
       if (!user.marketId) {
         return res.status(403).json({
           success: false,
@@ -264,17 +266,6 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
       });
     }
 
-    // Check access
-    if (user.role !== 'ADMIN' && user.marketId !== id) {
-      return res.status(403).json({
-        success: false,
-        error: {
-          code: 'FORBIDDEN',
-          message: 'You do not have access to this market',
-        },
-      });
-    }
-
     const market = await prisma.market.findUnique({
       where: { id },
       include: {
@@ -318,6 +309,37 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
         error: {
           code: 'NOT_FOUND',
           message: 'Market not found',
+        },
+      });
+    }
+
+    // Check access
+    if (user.role === 'MARKET_MANAGER' && user.marketId !== market.id) {
+      return res.status(403).json({
+        success: false,
+        error: {
+          code: 'FORBIDDEN',
+          message: 'You do not have access to this market',
+        },
+      });
+    }
+
+    if (user.role === 'MARKET_OWNER' && market.ownerId !== user.id) {
+      return res.status(403).json({
+        success: false,
+        error: {
+          code: 'FORBIDDEN',
+          message: 'You do not have access to this market',
+        },
+      });
+    }
+
+    if (user.role !== 'ADMIN' && user.role !== 'MARKET_OWNER' && user.role !== 'MARKET_MANAGER') {
+      return res.status(403).json({
+        success: false,
+        error: {
+          code: 'FORBIDDEN',
+          message: 'You do not have access to this market',
         },
       });
     }

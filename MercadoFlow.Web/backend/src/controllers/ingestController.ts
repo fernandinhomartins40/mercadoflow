@@ -107,6 +107,7 @@ const invoiceDataSchema = z.object({
 const ingestionRequestSchema = z.object({
   chaveNFe: z.string().length(44),
   marketId: z.string().uuid(),
+  pdvId: z.string().uuid().optional(),
   agentVersion: z.string().min(1),
   rawXmlHash: z.string().min(1),
   invoice: invoiceDataSchema
@@ -247,7 +248,7 @@ async function findOrCreateProduct(item: any): Promise<string> {
 
 async function processInvoice(request: InvoiceIngestionRequest, userId: string): Promise<{ success: boolean; invoiceId?: string; error?: string }> {
   try {
-    const { chaveNFe, marketId, rawXmlHash, invoice } = request;
+    const { chaveNFe, marketId, pdvId, rawXmlHash, invoice } = request;
 
     // Check if invoice already exists
     const existingInvoice = await prisma.invoice.findUnique({
@@ -279,6 +280,19 @@ async function processInvoice(request: InvoiceIngestionRequest, userId: string):
       };
     }
 
+    // Validate PDV if provided
+    if (pdvId) {
+      const pdv = await prisma.pDV.findFirst({
+        where: { id: pdvId, marketId }
+      });
+      if (!pdv) {
+        return {
+          success: false,
+          error: 'PDV not found for this market'
+        };
+      }
+    }
+
     // Start transaction
     const result = await prisma.$transaction(async (tx) => {
       // Create invoice
@@ -286,6 +300,7 @@ async function processInvoice(request: InvoiceIngestionRequest, userId: string):
         data: {
           chaveNFe,
           marketId,
+          pdvId: pdvId || null,
           serie: invoice.serie,
           numero: invoice.numero,
           dataEmissao: new Date(invoice.dataEmissao),
@@ -401,6 +416,7 @@ router.post('/invoice', ingestRateLimit, async (req: AuthRequest, res: Response)
     const invoiceRequest: InvoiceIngestionRequest = {
       chaveNFe: validatedData.chaveNFe,
       marketId: validatedData.marketId,
+      ...(validatedData.pdvId && { pdvId: validatedData.pdvId }),
       agentVersion: validatedData.agentVersion,
       rawXmlHash: validatedData.rawXmlHash,
       invoice: {
@@ -547,6 +563,7 @@ router.post('/batch', ingestRateLimit, async (req: AuthRequest, res: Response) =
         const invoiceRequest: InvoiceIngestionRequest = {
           chaveNFe: invoice.chaveNFe,
           marketId: invoice.marketId,
+          ...(invoice.pdvId && { pdvId: invoice.pdvId }),
           agentVersion: invoice.agentVersion,
           rawXmlHash: invoice.rawXmlHash,
           invoice: {

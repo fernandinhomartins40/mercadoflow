@@ -6,6 +6,7 @@ export type XmlVersion = 'VERSION_310' | 'VERSION_400' | 'UNKNOWN';
 export interface InvoiceIngestionRequest {
   chaveNFe: string;
   marketId: string;
+  pdvId?: string;
   agentVersion: string;
   rawXmlHash: string;
   invoice: InvoiceData;
