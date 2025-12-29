@@ -128,6 +128,15 @@ router.post('/:id/pdvs', async (req: AuthRequest, res: Response) => {
   try {
     const user = req.user!;
     const { id } = req.params;
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Market ID is required'
+        }
+      });
+    }
     const data = CreatePdvSchema.parse(req.body);
 
     const market = await prisma.market.findUnique({
