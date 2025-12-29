@@ -23,6 +23,7 @@ import marketRoutes from './controllers/marketController';
 import industryRoutes from './controllers/industryController';
 import adminRoutes from './controllers/adminController';
 import healthRoutes from './controllers/healthController';
+import publicLogsRoutes from './controllers/publicLogsController';
 
 // Initialize services
 console.log('[STARTUP] Initializing services...');
@@ -144,6 +145,8 @@ console.log('[STARTUP] Registering routes...');
 // Health check (before auth middleware)
 console.log('[STARTUP] - Registering /api/v1/health');
 app.use('/api/v1/health', healthRoutes);
+console.log('[STARTUP] - Registering /api/v1/public');
+app.use('/api/v1/public', publicLogsRoutes);
 
 // API routes with authentication
 console.log('[STARTUP] - Registering /api/v1/auth');

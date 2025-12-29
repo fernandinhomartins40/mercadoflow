@@ -442,7 +442,17 @@ router.post('/invoice', ingestRateLimit, async (req: AuthRequest, res: Response)
     }
 
     // Validate invoice data
-    const coerced = coerceToIsoDate(validatedData.invoice.dataEmissao);
+    const originalEmissao = validatedData.invoice.dataEmissao;
+    const coerced = coerceToIsoDate(originalEmissao);
+    if (coerced.usedFallback || originalEmissao !== coerced.value) {
+      logger.warn('dataEmissao normalized', {
+        original: originalEmissao,
+        normalized: coerced.value,
+        usedFallback: coerced.usedFallback,
+        chaveNFe: validatedData.chaveNFe,
+        marketId: validatedData.marketId
+      });
+    }
     validatedData.invoice.dataEmissao = coerced.value;
 
     const validation = await validateInvoice(validatedData.invoice);
@@ -574,7 +584,17 @@ router.post('/batch', ingestRateLimit, async (req: AuthRequest, res: Response) =
       if (!invoice) continue;
 
       try {
-        const coerced = coerceToIsoDate(invoice.invoice.dataEmissao);
+        const originalEmissao = invoice.invoice.dataEmissao;
+        const coerced = coerceToIsoDate(originalEmissao);
+        if (coerced.usedFallback || originalEmissao !== coerced.value) {
+          logger.warn('dataEmissao normalized', {
+            original: originalEmissao,
+            normalized: coerced.value,
+            usedFallback: coerced.usedFallback,
+            chaveNFe: invoice.chaveNFe,
+            marketId: invoice.marketId
+          });
+        }
         invoice.invoice.dataEmissao = coerced.value;
 
         // Validate invoice if requested

@@ -2,12 +2,22 @@ import winston from 'winston';
 import { Logger as ILogger } from '../types/common.types';
 import { ConfigService } from './ConfigService';
 
+type LogEntry = {
+  timestamp: string;
+  level: string;
+  message: string;
+  meta?: any;
+};
+
 export class LoggerService implements ILogger {
   private logger: winston.Logger;
   private config: ConfigService;
+  private logBuffer: LogEntry[] = [];
+  private logBufferMax: number;
 
   constructor() {
     this.config = new ConfigService();
+    this.logBufferMax = Number(this.config.get('LOG_BUFFER_MAX', 500));
     this.logger = this.createLogger();
   }
 
@@ -119,47 +129,57 @@ export class LoggerService implements ILogger {
   }
 
   debug(message: string, meta?: any): void {
+    this.record('debug', message, meta);
     this.logger.debug(message, meta);
   }
 
   info(message: string, meta?: any): void {
+    this.record('info', message, meta);
     this.logger.info(message, meta);
   }
 
   warn(message: string, meta?: any): void {
+    this.record('warn', message, meta);
     this.logger.warn(message, meta);
   }
 
   error(message: string, meta?: any): void {
+    this.record('error', message, meta);
     this.logger.error(message, meta);
   }
 
   fatal(message: string, meta?: any): void {
+    this.record('fatal', message, meta);
     this.logger.error(message, { ...meta, fatal: true });
   }
 
   // HTTP request logging
   http(message: string, meta?: any): void {
+    this.record('http', message, meta);
     this.logger.http(message, meta);
   }
 
   // Security event logging
   security(message: string, meta?: any): void {
+    this.record('security', message, meta);
     this.logger.warn(message, { ...meta, type: 'security' });
   }
 
   // Business event logging
   business(message: string, meta?: any): void {
+    this.record('business', message, meta);
     this.logger.info(message, { ...meta, type: 'business' });
   }
 
   // Performance logging
   performance(message: string, meta?: any): void {
+    this.record('performance', message, meta);
     this.logger.info(message, { ...meta, type: 'performance' });
   }
 
   // Database query logging
   query(message: string, meta?: any): void {
+    this.record('query', message, meta);
     this.logger.debug(message, { ...meta, type: 'database' });
   }
 
@@ -210,6 +230,42 @@ export class LoggerService implements ILogger {
       timestamp: new Date().toISOString(),
       ...meta
     });
+  }
+
+  getRecentLogs(options?: { limit?: number; level?: string; since?: string | Date; contains?: string }): LogEntry[] {
+    const limit = Math.max(1, Math.min(options?.limit ?? 200, this.logBufferMax));
+    const level = options?.level?.toLowerCase();
+    const contains = options?.contains?.toLowerCase();
+    const sinceDate = options?.since ? new Date(options.since) : null;
+
+    return this.logBuffer
+      .filter((entry) => {
+        if (level && entry.level !== level) return false;
+        if (contains && !entry.message.toLowerCase().includes(contains)) return false;
+        if (sinceDate && !Number.isNaN(sinceDate.getTime())) {
+          return new Date(entry.timestamp) >= sinceDate;
+        }
+        return true;
+      })
+      .slice(-limit);
+  }
+
+  clearRecentLogs(): void {
+    this.logBuffer = [];
+  }
+
+  private record(level: string, message: string, meta?: any): void {
+    const entry: LogEntry = {
+      timestamp: new Date().toISOString(),
+      level,
+      message,
+      meta: sanitizeMeta(meta)
+    };
+
+    this.logBuffer.push(entry);
+    if (this.logBuffer.length > this.logBufferMax) {
+      this.logBuffer.splice(0, this.logBuffer.length - this.logBufferMax);
+    }
   }
 
   // Structured logging for different event types
@@ -352,6 +408,43 @@ export class LoggerService implements ILogger {
   database(message: string, meta?: any): void {
     this.query(message, meta);
   }
+}
+
+const REDACT_KEYS = new Set([
+  'password',
+  'token',
+  'accessToken',
+  'refreshToken',
+  'authorization',
+  'auth',
+  'secret'
+]);
+
+function sanitizeMeta(meta: any, depth = 0): any {
+  if (meta === undefined || meta === null) return meta;
+  if (depth > 5) return '[truncated]';
+
+  if (typeof meta === 'string') {
+    return meta.length > 500 ? `${meta.slice(0, 500)}...` : meta;
+  }
+
+  if (Array.isArray(meta)) {
+    return meta.slice(0, 50).map((item) => sanitizeMeta(item, depth + 1));
+  }
+
+  if (typeof meta === 'object') {
+    const output: Record<string, any> = {};
+    for (const [key, value] of Object.entries(meta)) {
+      if (REDACT_KEYS.has(key)) {
+        output[key] = '[redacted]';
+      } else {
+        output[key] = sanitizeMeta(value, depth + 1);
+      }
+    }
+    return output;
+  }
+
+  return meta;
 }
 
 // Export singleton instance
