@@ -236,16 +236,30 @@ tail -f /var/log/mercadoflow/deploy.log
 
 ## 🔒 Configuração SSL/HTTPS
 
-### Usando Certbot (Let's Encrypt):
+### ✅ Configuração Automática
+
+O SSL/HTTPS é configurado **automaticamente** durante o primeiro deploy via GitHub Actions!
+
+O workflow de deploy:
+1. ✅ Detecta se certificados SSL já existem
+2. ✅ Se não existirem, executa `certbot --nginx` automaticamente
+3. ✅ Preserva certificados existentes em deploys subsequentes
+4. ✅ Nunca sobrescreve configurações SSL válidas
+
+**Você não precisa fazer nada manualmente!**
+
+### Configuração Manual (se necessário):
+
+Caso precise reconfigurar SSL manualmente:
 
 ```bash
-# Obter certificado SSL gratuito
+# Obter/renovar certificado SSL
 sudo certbot --nginx \
   -d mercadoflow.com \
   -d www.mercadoflow.com \
   --non-interactive \
   --agree-tos \
-  --email seu-email@exemplo.com
+  --email admin@mercadoflow.com
 ```
 
 ### Renovação automática:
@@ -263,8 +277,24 @@ sudo certbot renew --dry-run
 ```bash
 # Testar certificado
 curl -I https://mercadoflow.com
-openssl s_client -connect mercadoflow.com:443 -servername mercadoflow.com
+
+# Ver detalhes do certificado
+openssl s_client -connect mercadoflow.com:443 -servername mercadoflow.com 2>/dev/null | openssl x509 -noout -subject -issuer -dates
+
+# Verificar SAN (Subject Alternative Names)
+echo | openssl s_client -connect mercadoflow.com:443 -servername mercadoflow.com 2>/dev/null | openssl x509 -noout -text | grep -A 1 'Subject Alternative Name'
 ```
+
+### ⚠️ Importante sobre Deploys
+
+O workflow foi modificado para **NUNCA sobrescrever certificados SSL existentes**.
+
+Durante cada deploy, o sistema:
+- 🔍 Verifica se `/etc/nginx/sites-available/mercadoflow.conf` contém certificados SSL válidos
+- ✅ Se SIM: Preserva o arquivo completamente (não reescreve)
+- ⚠️ Se NÃO: Recria o arquivo e executa certbot automaticamente
+
+Isso garante que seus certificados SSL nunca sejam perdidos em atualizações!
 
 ---
 

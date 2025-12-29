@@ -25,12 +25,16 @@ git push origin main
 
 O deploy acontece automaticamente! ✅
 
-### 4. Configurar SSL (após primeiro deploy)
+### 4. SSL configurado automaticamente! ✅
 
-```bash
-# Na VPS
-sudo certbot --nginx -d mercadoflow.com -d www.mercadoflow.com
-```
+O SSL/HTTPS é configurado **automaticamente** durante o deploy.
+
+Não é necessário executar `certbot` manualmente - o workflow faz isso por você!
+
+> **Nota:** Se precisar reconfigurar SSL manualmente:
+> ```bash
+> sudo certbot --nginx -d mercadoflow.com -d www.mercadoflow.com
+> ```
 
 ---
 
@@ -148,7 +152,7 @@ curl http://localhost:3300/health
 - [ ] Docker instalado na VPS
 - [ ] GitHub Secret `VPS_PASSWORD` configurado
 - [ ] Push para `main` branch
-- [ ] SSL configurado com certbot
+- [ ] ✨ SSL configurado **automaticamente** pelo workflow
 - [ ] Health check OK: `curl https://mercadoflow.com/health`
 - [ ] Login funcionando
 

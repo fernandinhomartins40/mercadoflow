@@ -317,8 +317,26 @@ jobs:
             # ===== CONFIGURAR NGINX DO SISTEMA =====
             echo "=== Configurando Nginx do sistema para porta 3300 ==="
 
-            # Criar configuração do Nginx
-            cat > /etc/nginx/sites-available/mercadoflow.conf << 'NGINX_EOF'
+            # Verificar se configuração já existe com certificados SSL
+            NGINX_CONFIG_FILE="/etc/nginx/sites-available/mercadoflow.conf"
+            SSL_CONFIGURED=false
+
+            if [ -f "$NGINX_CONFIG_FILE" ]; then
+              if grep -q "ssl_certificate.*letsencrypt" "$NGINX_CONFIG_FILE"; then
+                echo "✅ Configuração Nginx já existe com certificados SSL válidos"
+                echo "📝 Preservando configuração existente (não reescrever)"
+                SSL_CONFIGURED=true
+              else
+                echo "⚠️ Configuração existe mas sem certificados SSL - será recriada"
+              fi
+            else
+              echo "ℹ️ Configuração Nginx não existe - será criada"
+            fi
+
+            # Criar/recriar configuração APENAS se não tiver SSL configurado
+            if [ "$SSL_CONFIGURED" = false ]; then
+              echo "📝 Criando/atualizando configuração Nginx..."
+              cat > /etc/nginx/sites-available/mercadoflow.conf << 'NGINX_EOF'
             # HTTP - MercadoFlow
             server {
                 listen 80;
@@ -375,15 +393,45 @@ jobs:
             }
             NGINX_EOF
 
-            # Habilitar site
-            ln -sf /etc/nginx/sites-available/mercadoflow.conf /etc/nginx/sites-enabled/
+              echo "✅ Configuração Nginx criada"
 
-            # Remover configuração default se existir
-            rm -f /etc/nginx/sites-enabled/default
+              # Habilitar site
+              ln -sf /etc/nginx/sites-available/mercadoflow.conf /etc/nginx/sites-enabled/
+
+              # Remover configuração default se existir
+              rm -f /etc/nginx/sites-enabled/default
+
+              # Configurar SSL com Certbot (apenas se não estiver configurado)
+              echo "🔒 Configurando certificados SSL com Certbot..."
+              if certbot --nginx -d mercadoflow.com -d www.mercadoflow.com --non-interactive --agree-tos --email admin@mercadoflow.com --redirect 2>&1 | tee /tmp/certbot.log; then
+                echo "✅ Certificados SSL configurados com sucesso"
+              else
+                CERTBOT_OUTPUT=$(cat /tmp/certbot.log)
+                if echo "$CERTBOT_OUTPUT" | grep -q "Certificate not yet due for renewal"; then
+                  echo "ℹ️ Certificados já existem e são válidos"
+                  # Tentar apenas reinstalar/reconfigurar
+                  certbot install --nginx -d mercadoflow.com -d www.mercadoflow.com --non-interactive 2>&1 || echo "⚠️ Certbot install falhou, mas certificados podem estar OK"
+                else
+                  echo "⚠️ Erro ao configurar SSL - será necessário configurar manualmente"
+                  echo "Execute: sudo certbot --nginx -d mercadoflow.com -d www.mercadoflow.com"
+                fi
+              fi
+            else
+              echo "✅ Mantendo configuração Nginx existente com SSL"
+
+              # Apenas garantir que está habilitado
+              ln -sf /etc/nginx/sites-available/mercadoflow.conf /etc/nginx/sites-enabled/
+            fi
 
             # Testar e recarregar Nginx
-            nginx -t && systemctl reload nginx
-            echo "✅ Nginx do sistema configurado com sucesso"
+            if nginx -t; then
+              systemctl reload nginx
+              echo "✅ Nginx recarregado com sucesso"
+            else
+              echo "❌ Erro na configuração do Nginx"
+              nginx -t
+              exit 1
+            fi
 
             # Aguardar Nginx iniciar
             sleep 3
