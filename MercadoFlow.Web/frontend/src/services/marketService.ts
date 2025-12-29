@@ -1,7 +1,36 @@
 import api from './api';
-import { MarketOverview, MarketStatistics, MarketBasketItem, MarketDetails } from '../types';
+import {
+  MarketOverview,
+  MarketStatistics,
+  MarketBasketItem,
+  MarketDetails,
+  MarketListResponse,
+  Pdv
+} from '../types';
 
 export const marketService = {
+  async getMarkets(): Promise<MarketListResponse> {
+    const response = await api.get<MarketListResponse>('/api/v1/markets');
+    return response.data;
+  },
+
+  async createMarket(data: {
+    name: string;
+    cnpj?: string;
+    address: string;
+    city: string;
+    state: string;
+    region: string;
+  }) {
+    const response = await api.post('/api/v1/markets', data);
+    return response.data;
+  },
+
+  async createPdv(marketId: string, data: { name: string; identifier: string }): Promise<Pdv> {
+    const response = await api.post<Pdv>(`/api/v1/markets/${marketId}/pdvs`, data);
+    return response.data;
+  },
+
   async getMarketOverview(): Promise<MarketOverview> {
     const response = await api.get<MarketOverview>('/api/v1/markets');
     return response.data;

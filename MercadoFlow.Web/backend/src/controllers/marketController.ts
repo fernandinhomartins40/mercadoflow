@@ -15,6 +15,195 @@ const MarketQuerySchema = z.object({
   period: z.enum(['7d', '30d', '90d', '365d']).optional().default('30d'),
 });
 
+const CreateMarketSchema = z.object({
+  name: z.string().min(2),
+  cnpj: z.string().min(14).max(14).optional(),
+  address: z.string().min(3),
+  city: z.string().min(2),
+  state: z.string().min(2).max(2),
+  region: z.string().min(2),
+  planType: z.enum(['BASIC', 'INTERMEDIATE', 'ADVANCED']).optional(),
+  ownerId: z.string().uuid().optional()
+});
+
+const CreatePdvSchema = z.object({
+  name: z.string().min(2),
+  identifier: z.string().min(1)
+});
+
+function ensureMarketAccess(user: AuthRequest['user'], market: { id: string; ownerId: string }) {
+  if (!user) return false;
+  if (user.role === 'ADMIN') return true;
+  if (user.role === 'MARKET_OWNER' && market.ownerId === user.id) return true;
+  if (user.role === 'MARKET_MANAGER' && user.marketId === market.id) return true;
+  return false;
+}
+
+/**
+ * POST /api/v1/markets
+ * Create a market (owner/admin)
+ */
+router.post('/', async (req: AuthRequest, res: Response) => {
+  try {
+    const user = req.user!;
+    if (user.role !== 'MARKET_OWNER' && user.role !== 'ADMIN') {
+      return res.status(403).json({
+        success: false,
+        error: {
+          code: 'FORBIDDEN',
+          message: 'Access denied'
+        }
+      });
+    }
+
+    const data = CreateMarketSchema.parse(req.body);
+    const ownerId = user.role === 'MARKET_OWNER' ? user.id : data.ownerId;
+    if (!ownerId) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Owner ID is required'
+        }
+      });
+    }
+
+    const owner = await prisma.user.findUnique({ where: { id: ownerId } });
+    if (!owner) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          code: 'NOT_FOUND',
+          message: 'Owner not found'
+        }
+      });
+    }
+
+    const market = await prisma.market.create({
+      data: {
+        name: data.name,
+        cnpj: data.cnpj || null,
+        address: data.address,
+        city: data.city,
+        state: data.state,
+        region: data.region,
+        ownerId,
+        planType: data.planType || 'BASIC',
+        isActive: true
+      }
+    });
+
+    return res.status(201).json({
+      success: true,
+      data: market
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Validation failed',
+          details: error.errors
+        }
+      });
+    }
+
+    logger.error('Error creating market', { error, user: req.user?.id });
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'INTERNAL_ERROR',
+        message: 'Error creating market'
+      }
+    });
+  }
+});
+
+/**
+ * POST /api/v1/markets/:id/pdvs
+ * Create PDV for market
+ */
+router.post('/:id/pdvs', async (req: AuthRequest, res: Response) => {
+  try {
+    const user = req.user!;
+    const { id } = req.params;
+    const data = CreatePdvSchema.parse(req.body);
+
+    const market = await prisma.market.findUnique({
+      where: { id },
+      select: { id: true, ownerId: true }
+    });
+
+    if (!market) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          code: 'NOT_FOUND',
+          message: 'Market not found'
+        }
+      });
+    }
+
+    if (!ensureMarketAccess(user, market)) {
+      return res.status(403).json({
+        success: false,
+        error: {
+          code: 'FORBIDDEN',
+          message: 'You do not have access to this market'
+        }
+      });
+    }
+
+    const existing = await prisma.pDV.findFirst({
+      where: { marketId: id, identifier: data.identifier }
+    });
+    if (existing) {
+      return res.status(409).json({
+        success: false,
+        error: {
+          code: 'DUPLICATE_ENTRY',
+          message: 'PDV identifier already exists'
+        }
+      });
+    }
+
+    const pdv = await prisma.pDV.create({
+      data: {
+        marketId: id,
+        name: data.name,
+        identifier: data.identifier,
+        isActive: true
+      }
+    });
+
+    return res.status(201).json({
+      success: true,
+      data: pdv
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Validation failed',
+          details: error.errors
+        }
+      });
+    }
+
+    logger.error('Error creating PDV', { error, user: req.user?.id });
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'INTERNAL_ERROR',
+        message: 'Error creating PDV'
+      }
+    });
+  }
+});
+
 /**
  * GET /api/v1/markets
  * Get market overview and statistics

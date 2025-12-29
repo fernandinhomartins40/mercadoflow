@@ -13,6 +13,38 @@ export interface Market {
   updatedAt: string;
 }
 
+export interface MarketListItem {
+  id: string;
+  name: string;
+  city: string;
+  state: string;
+  region: string;
+  planType: string;
+  isActive: boolean;
+  pdvCount: number;
+  invoiceCount: number;
+  alertCount: number;
+  userCount: number;
+}
+
+export interface MarketListResponse {
+  overview: {
+    totalMarkets: number;
+    activeMarkets: number;
+    marketShare: number;
+    totalInvoicesProcessed: number;
+    activeAlerts: number;
+  };
+  markets: MarketListItem[];
+}
+
+export interface Pdv {
+  id: string;
+  name: string;
+  identifier: string;
+  isActive: boolean;
+}
+
 export interface MarketOverview {
   totalMarkets: number;
   activeMarkets: number;
