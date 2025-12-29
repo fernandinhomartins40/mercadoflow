@@ -22,6 +22,36 @@ const config = new ConfigService();
 const logger = new LoggerService();
 const redis = new RedisService();
 
+function normalizeDateTimeString(value: unknown): unknown {
+  if (typeof value !== 'string') {
+    return value;
+  }
+
+  let cleaned = value.trim().replace(' ', 'T').replace('UTC', 'Z');
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(cleaned)) {
+    return `${cleaned}T00:00:00-03:00`;
+  }
+
+  if (/[+-]\d{2}$/.test(cleaned)) {
+    cleaned = `${cleaned}:00`;
+  } else if (/[+-]\d{4}$/.test(cleaned)) {
+    cleaned = `${cleaned.slice(0, -2)}:${cleaned.slice(-2)}`;
+  }
+
+  if (!/[zZ]|[+-]\d{2}:\d{2}$/.test(cleaned)) {
+    if (/T\d{2}:\d{2}$/.test(cleaned)) {
+      cleaned = `${cleaned}:00-03:00`;
+    } else if (/T\d{2}:\d{2}:\d{2}(\.\d+)?$/.test(cleaned)) {
+      cleaned = `${cleaned}-03:00`;
+    } else if (/^\d{4}-\d{2}-\d{2}T/.test(cleaned)) {
+      cleaned = `${cleaned}-03:00`;
+    }
+  }
+
+  return cleaned;
+}
+
 // Rate limiting for data ingestion (higher limits)
 const ingestRateLimit = rateLimit({
   windowMs: 60 * 1000, // 1 minute
@@ -89,7 +119,7 @@ const invoiceDataSchema = z.object({
   chaveNFe: z.string().length(44, 'Chave NFe must be 44 characters'),
   serie: z.string().min(1),
   numero: z.string().min(1),
-  dataEmissao: z.string().datetime(),
+  dataEmissao: z.preprocess(normalizeDateTimeString, z.string().datetime()),
   documentType: z.enum(['NFE', 'NFCE']),
   xmlVersion: z.enum(['VERSION_310', 'VERSION_400', 'UNKNOWN']),
   cnpjEmitente: z.string().min(14).max(14),
