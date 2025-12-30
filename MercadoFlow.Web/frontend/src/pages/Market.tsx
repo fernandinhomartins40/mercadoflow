@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
 import MainLayout from '../layouts/MainLayout';
 import Card from '../components/ui/Card';
 import Spinner from '../components/ui/Spinner';
@@ -11,12 +12,12 @@ const Market: React.FC = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  const { data: basketData, isLoading } = useQuery({
+  const { data: basketData, isLoading: isBasketLoading } = useQuery({
     queryKey: ['market-basket', user?.marketId],
     queryFn: () => marketService.getMarketBasketAnalysis(user?.marketId)
   });
 
-  const { data: marketList } = useQuery({
+  const { data: marketList, isLoading: isMarketListLoading, isError: isMarketListError, error: marketListError } = useQuery({
     queryKey: ['markets-list'],
     queryFn: () => marketService.getMarkets(),
     enabled: !!user
@@ -36,9 +37,22 @@ const Market: React.FC = () => {
     name: '',
     identifier: ''
   });
+  const [marketError, setMarketError] = useState<string | null>(null);
+  const [pdvError, setPdvError] = useState<string | null>(null);
 
   const canManageMarkets = user?.role === UserRole.MARKET_OWNER || user?.role === UserRole.ADMIN;
   const markets = marketList?.markets ?? [];
+  const isMarketValid = !!marketForm.name && !!marketForm.address && !!marketForm.city && !!marketForm.state && !!marketForm.region;
+  const isPdvValid = !!pdvForm.marketId && !!pdvForm.name && !!pdvForm.identifier;
+
+  const getErrorMessage = (error: unknown, fallback: string) => {
+    if (typeof error === 'string') return error;
+    if (error && typeof error === 'object') {
+      const anyError = error as any;
+      return anyError?.response?.data?.error?.message || anyError?.message || fallback;
+    }
+    return fallback;
+  };
 
   const createMarket = useMutation({
     mutationFn: () => marketService.createMarket({
@@ -51,7 +65,14 @@ const Market: React.FC = () => {
     }),
     onSuccess: () => {
       setMarketForm({ name: '', cnpj: '', address: '', city: '', state: '', region: '' });
+      setMarketError(null);
       queryClient.invalidateQueries({ queryKey: ['markets-list'] });
+      toast.success('Supermercado cadastrado com sucesso.');
+    },
+    onError: (error) => {
+      const message = getErrorMessage(error, 'Falha ao cadastrar supermercado.');
+      setMarketError(message);
+      toast.error(message);
     }
   });
 
@@ -62,7 +83,14 @@ const Market: React.FC = () => {
     }),
     onSuccess: () => {
       setPdvForm({ marketId: pdvForm.marketId, name: '', identifier: '' });
+      setPdvError(null);
       queryClient.invalidateQueries({ queryKey: ['markets-list'] });
+      toast.success('PDV cadastrado com sucesso.');
+    },
+    onError: (error) => {
+      const message = getErrorMessage(error, 'Falha ao cadastrar PDV.');
+      setPdvError(message);
+      toast.error(message);
     }
   });
 
@@ -71,7 +99,7 @@ const Market: React.FC = () => {
     [markets, pdvForm.marketId]
   );
 
-  if (isLoading) return <MainLayout><Spinner size="xl" text="Carregando..." /></MainLayout>;
+  if (isBasketLoading) return <MainLayout><Spinner size="xl" text="Carregando..." /></MainLayout>;
 
   return (
     <MainLayout>
@@ -126,11 +154,20 @@ const Market: React.FC = () => {
                 </div>
                 <button
                   className="bg-blue-600 text-white rounded-lg px-4 py-2 disabled:opacity-50"
-                  disabled={createMarket.isPending}
-                  onClick={() => createMarket.mutate()}
+                  disabled={createMarket.isPending || !isMarketValid}
+                  onClick={() => {
+                    if (!isMarketValid) {
+                      const message = 'Preencha os campos obrigatorios do supermercado.';
+                      setMarketError(message);
+                      toast.error(message);
+                      return;
+                    }
+                    createMarket.mutate();
+                  }}
                 >
                   {createMarket.isPending ? 'Salvando...' : 'Cadastrar supermercado'}
                 </button>
+                {marketError && <p className="text-sm text-red-600">{marketError}</p>}
               </div>
 
               <div className="space-y-3">
@@ -163,16 +200,31 @@ const Market: React.FC = () => {
                 </div>
                 <button
                   className="bg-blue-600 text-white rounded-lg px-4 py-2 disabled:opacity-50"
-                  disabled={createPdv.isPending || !pdvForm.marketId}
-                  onClick={() => createPdv.mutate()}
+                  disabled={createPdv.isPending || !isPdvValid}
+                  onClick={() => {
+                    if (!isPdvValid) {
+                      const message = 'Selecione o supermercado e preencha nome e identificador.';
+                      setPdvError(message);
+                      toast.error(message);
+                      return;
+                    }
+                    createPdv.mutate();
+                  }}
                 >
                   {createPdv.isPending ? 'Salvando...' : 'Cadastrar PDV'}
                 </button>
                 {selectedMarket && (
                   <p className="text-sm text-gray-500">PDVs atuais: {selectedMarket.pdvCount}</p>
                 )}
+                {pdvError && <p className="text-sm text-red-600">{pdvError}</p>}
               </div>
             </div>
+            {isMarketListLoading && <p className="text-sm text-gray-500 mt-4">Carregando mercados...</p>}
+            {isMarketListError && (
+              <p className="text-sm text-red-600 mt-2">
+                {getErrorMessage(marketListError, 'Falha ao carregar mercados.')}
+              </p>
+            )}
           </Card>
         )}
 
