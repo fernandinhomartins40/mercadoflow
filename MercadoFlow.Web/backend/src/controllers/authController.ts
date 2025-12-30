@@ -29,7 +29,7 @@ const emailService = new EmailService();
 // Rate limiting for authentication endpoints
 const authRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // 5 attempts per window
+  max: 20, // 20 attempts per window
   message: {
     success: false,
     error: {
